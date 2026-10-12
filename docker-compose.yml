@@ -1,0 +1,168 @@
+services:
+  # ============================================================================
+  # 1. PostgreSQL Database Service
+  # ============================================================================
+  db:
+    image: postgres:16-alpine
+    container_name: anvil_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-anvil_db}
+      POSTGRES_USER: ${POSTGRES_USER:-anvil_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-anvil_secure_password}
+    ports:
+      - "${POSTGRES_HOST_PORT:-8532}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-anvil_user} -d ${POSTGRES_DB:-anvil_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - anvil_network
+
+  # ============================================================================
+  # 2. Redis Message Broker & Tick Cache
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: anvil_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_HOST_PORT:-8579}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - anvil_network
+
+  # ============================================================================
+  # 3. Python Django Backend & Management API
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: anvil_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py makemigrations authentication accounts dhan_v2 core --noinput &&
+             python manage.py migrate --noinput &&
+             python manage.py init_sandbox_defaults &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "${BACKEND_PORT:-8501}:8000"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - anvil_network
+
+  # ============================================================================
+  # 4. Go High-Speed Order Execution & Streaming Engine
+  # ============================================================================
+  engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    container_name: anvil_engine
+    restart: unless-stopped
+    ports:
+      - "${ENGINE_PORT:-8588}:8088"
+    env_file:
+      - .env
+    environment:
+      - PORT=8088
+      - REDIS_URL=redis://redis:6379/0
+      - DJANGO_BACKEND_URL=http://backend:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - anvil_network
+
+  # ============================================================================
+  # 5. React Frontend Trading Terminal (Vite Dev / Nginx)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: anvil_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8573}:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8501
+      - VITE_ENGINE_URL=http://localhost:8588
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - anvil_network
+
+  # ============================================================================
+  # 6. Nginx Unified Gateway Reverse Proxy
+  # ============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: anvil_nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8500}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - engine
+      - frontend
+    networks:
+      - anvil_network
+
+  # ============================================================================
+  # 7. Ngrok Ingress Gateway Tunnel
+  # ============================================================================
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: anvil_ngrok
+    restart: unless-stopped
+    command:
+      - "http"
+      - "nginx:80"
+      - "--log=stdout"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "${NGROK_WEB_PORT:-8540}:4040"
+    depends_on:
+      - nginx
+    networks:
+      - anvil_network
+
+networks:
+  anvil_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
