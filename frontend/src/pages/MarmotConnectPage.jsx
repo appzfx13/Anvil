@@ -166,29 +166,20 @@ export default function MarmotConnectPage({
 
 
   return (
-    <div id="marmot-connect-page" style={{ padding: '24px 32px', width: '100%', boxSizing: 'border-box' }}>
-      {/* Page Title & Status Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)',
-              border: '1px solid rgba(52, 211, 153, 0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <KeyRound size={24} color="#34d399" />
+    <div id="marmot-connect-page" className="profile-page-shell">
+      {/* Page Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill emerald">
+            Integrations
           </div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Marmot Bot & Dhan v2 Gateway</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                Marmot Connect & Sandbox Gateway
-              </h1>
+            <h1 className="profile-page-title">
+              Marmot Connect & Sandbox Gateway
               <span
                 style={{
                   fontSize: '0.72rem',
@@ -202,38 +193,38 @@ export default function MarmotConnectPage({
               >
                 DHAN v2 COMPATIBLE
               </span>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
+            </h1>
+            <p className="profile-page-subtitle">
               Direct client credentials, algorithmic trading keys, postback webhook dispatch, and live safety controls.
             </p>
           </div>
-        </div>
 
-        {/* Top Actions: Kill Switch & Health Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            id="marmot-page-kill-switch-btn"
-            onClick={handleToggleKillSwitch}
-            disabled={killSwitchLoading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '9px 16px',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: killSwitchLoading ? 'not-allowed' : 'pointer',
-              background: killSwitchActive ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)',
-              color: killSwitchActive ? '#ef4444' : '#f87171',
-              border: killSwitchActive ? '1px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.3)',
-              boxShadow: killSwitchActive ? '0 0 16px rgba(239, 68, 68, 0.3)' : 'none',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Power size={15} />
-            <span>{killSwitchActive ? 'KILL SWITCH ENGAGED' : 'Kill Switch (Disarm)'}</span>
-          </button>
+          {/* Top Actions: Kill Switch & Health Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              id="marmot-page-kill-switch-btn"
+              onClick={handleToggleKillSwitch}
+              disabled={killSwitchLoading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: killSwitchLoading ? 'not-allowed' : 'pointer',
+                background: killSwitchActive ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)',
+                color: killSwitchActive ? '#ef4444' : '#f87171',
+                border: killSwitchActive ? '1px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.3)',
+                boxShadow: killSwitchActive ? '0 0 16px rgba(239, 68, 68, 0.3)' : 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Power size={15} />
+              <span>{killSwitchActive ? 'KILL SWITCH ENGAGED' : 'Kill Switch (Disarm)'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -241,30 +232,31 @@ export default function MarmotConnectPage({
       {killSwitchActive && (
         <div
           style={{
-            marginBottom: '20px',
-            padding: '14px 18px',
-            borderRadius: '10px',
+            marginBottom: '24px',
+            padding: '16px 20px',
+            borderRadius: '12px',
             background: 'rgba(239, 68, 68, 0.15)',
             border: '1px solid rgba(239, 68, 68, 0.4)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '14px',
+            boxShadow: '0 8px 24px rgba(239, 68, 68, 0.2)',
           }}
         >
-          <AlertTriangle size={20} color="#ef4444" />
-          <div style={{ flex: 1, fontSize: '0.86rem', color: '#fca5a5' }}>
+          <AlertTriangle size={22} color="#ef4444" />
+          <div style={{ flex: 1, fontSize: '0.88rem', color: '#fca5a5' }}>
             <strong>EMERGENCY KILL SWITCH IS ACTIVE:</strong> All incoming order requests from MARMOT or Python bots are rejected immediately with Dhan status REJECTED.
           </div>
           <button
             onClick={handleToggleKillSwitch}
             style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
+              padding: '8px 16px',
+              borderRadius: '8px',
               background: '#ef4444',
               color: '#ffffff',
               border: 'none',
               fontWeight: 700,
-              fontSize: '0.8rem',
+              fontSize: '0.82rem',
               cursor: 'pointer',
             }}
           >
@@ -273,206 +265,250 @@ export default function MarmotConnectPage({
         </div>
       )}
 
-      {/* SECTION 1: Credentials Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        {/* 1. Broker Base URL */}
-        <div
-          style={{
-            background: 'rgba(12, 17, 29, 0.75)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '12px',
-            padding: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>1. BROKER GATEWAY BASE URL</span>
-            <button
-              onClick={() => copyToClipboard(brokerBaseUrl, 'base-url')}
+      {/* ========================================================================= */}
+      {/* SECTION 1: CREDENTIALS OBSIDIAN CARD (Profile Theme Matching) */}
+      {/* ========================================================================= */}
+      <div className="profile-card">
+        <div className="profile-card-glow emerald" />
+
+        {/* Card Header */}
+        <div className="profile-card-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: copiedKey === 'base-url' ? 'var(--bull-green)' : 'var(--text-muted)',
-                cursor: 'pointer',
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)',
+                border: '1px solid rgba(52, 211, 153, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.75rem',
+                justifyContent: 'center',
               }}
             >
-              {copiedKey === 'base-url' ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedKey === 'base-url' ? 'Copied' : 'Copy'}</span>
+              <KeyRound size={22} color="#34d399" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                  Marmot Bot Connection & API Credentials
+                </h3>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    background: 'rgba(52, 211, 153, 0.15)',
+                    color: '#34d399',
+                    border: '1px solid rgba(52, 211, 153, 0.3)',
+                  }}
+                >
+                  DHAN v2 COMPATIBLE
+                </span>
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '4px 0 0 0' }}>
+                Plug these credentials into your Marmot trading engine to stream real-time ticks and execute algorithmic orders directly into Anvil.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              id="regenerate-keys-btn"
+              onClick={handleRegenerateCredentials}
+              disabled={isRegenerating}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#f87171',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: isRegenerating ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <RefreshCw size={13} className={isRegenerating ? 'spin' : ''} />
+              <span>{isRegenerating ? 'Regenerating...' : 'Regenerate API Keys'}</span>
             </button>
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: '#38bdf8', wordBreak: 'break-all', fontWeight: 600 }}>
-            {brokerBaseUrl}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Set as target base URL for Marmot or DhanHQ client.
           </div>
         </div>
 
-        {/* 2. Client ID */}
+        {/* Credentials Grid */}
         <div
           style={{
-            background: 'rgba(12, 17, 29, 0.75)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '12px',
-            padding: '16px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '16px',
+            marginBottom: '20px',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>2. DHAN CLIENT ID / APP ID</span>
-            <button
-              onClick={() => copyToClipboard(clientId, 'client-id')}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: copiedKey === 'client-id' ? 'var(--bull-green)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '0.75rem',
-              }}
-            >
-              {copiedKey === 'client-id' ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedKey === 'client-id' ? 'Copied' : 'Copy'}</span>
-            </button>
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem', color: '#ffffff', fontWeight: 700 }}>
-            {clientId}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Unique 10-digit sandbox trader identifier.
-          </div>
-        </div>
-
-        {/* 3. Client Secret */}
-        <div
-          style={{
-            background: 'rgba(12, 17, 29, 0.75)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '12px',
-            padding: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>3. CLIENT SECRET</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* 1. Broker Base URL */}
+          <div className="profile-tile">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+                1. BROKER GATEWAY BASE URL
+              </span>
               <button
-                onClick={() => setShowSecret(!showSecret)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                title={showSecret ? 'Hide Secret' : 'Reveal Secret'}
-              >
-                {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-              <button
-                onClick={() => copyToClipboard(clientSecret, 'secret')}
+                onClick={() => copyToClipboard(brokerBaseUrl, 'base-url')}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: copiedKey === 'secret' ? 'var(--bull-green)' : 'var(--text-muted)',
+                  color: copiedKey === 'base-url' ? '#10b981' : '#94a3b8',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
                 }}
               >
-                {copiedKey === 'secret' ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copiedKey === 'secret' ? 'Copied' : 'Copy'}</span>
+                {copiedKey === 'base-url' ? <Check size={13} /> : <Copy size={13} />}
+                <span>{copiedKey === 'base-url' ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.92rem', color: '#38bdf8', wordBreak: 'break-all', fontWeight: 700 }}>
+              {brokerBaseUrl}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+              Set as target base URL for Marmot or DhanHQ client.
+            </div>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.86rem', color: '#fbbf24', wordBreak: 'break-all' }}>
-            {showSecret ? clientSecret : '••••••••••••••••••••••••••••••••'}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Used for token exchange and payload HMAC verification.
-          </div>
-        </div>
 
-        {/* 4. Access Token */}
-        <div
-          style={{
-            background: 'rgba(12, 17, 29, 0.75)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '12px',
-            padding: '16px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600 }}>4. DHAN ACCESS TOKEN</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* 2. Client ID */}
+          <div className="profile-tile">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+                2. DHAN CLIENT ID / APP ID
+              </span>
               <button
-                onClick={() => setShowToken(!showToken)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                title={showToken ? 'Hide Token' : 'Reveal Token'}
-              >
-                {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-              <button
-                onClick={() => copyToClipboard(accessToken, 'token')}
+                onClick={() => copyToClipboard(clientId, 'client-id')}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: copiedKey === 'token' ? 'var(--bull-green)' : 'var(--text-muted)',
+                  color: copiedKey === 'client-id' ? '#10b981' : '#94a3b8',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
                 }}
               >
-                {copiedKey === 'token' ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copiedKey === 'token' ? 'Copied' : 'Copy'}</span>
+                {copiedKey === 'client-id' ? <Check size={13} /> : <Copy size={13} />}
+                <span>{copiedKey === 'client-id' ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.1rem', color: '#ffffff', fontWeight: 800 }}>
+              {clientId}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+              Unique 10-digit sandbox trader identifier.
+            </div>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.86rem', color: 'var(--bull-green)', wordBreak: 'break-all' }}>
-            {showToken ? accessToken : '••••••••••••••••••••••••••••••••'}
+
+          {/* 3. Client Secret */}
+          <div className="profile-tile">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+                3. CLIENT SECRET
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => setShowSecret(!showSecret)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  title={showSecret ? 'Hide Secret' : 'Reveal Secret'}
+                >
+                  {showSecret ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+                <button
+                  onClick={() => copyToClipboard(clientSecret, 'secret')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: copiedKey === 'secret' ? '#10b981' : '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {copiedKey === 'secret' ? <Check size={13} /> : <Copy size={13} />}
+                  <span>{copiedKey === 'secret' ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: '#fbbf24', wordBreak: 'break-all', fontWeight: 600 }}>
+              {showSecret ? clientSecret : '••••••••••••••••••••••••••••••••'}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+              Used for token exchange and payload HMAC verification.
+            </div>
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Permanent Sandbox wire bearer token.
+
+          {/* 4. Access Token */}
+          <div className="profile-tile">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+                4. DHAN ACCESS TOKEN
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => setShowToken(!showToken)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  title={showToken ? 'Hide Token' : 'Reveal Token'}
+                >
+                  {showToken ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+                <button
+                  onClick={() => copyToClipboard(accessToken, 'token')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: copiedKey === 'token' ? '#10b981' : '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {copiedKey === 'token' ? <Check size={13} /> : <Copy size={13} />}
+                  <span>{copiedKey === 'token' ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: '#10b981', wordBreak: 'break-all', fontWeight: 600 }}>
+              {showToken ? accessToken : '••••••••••••••••••••••••••••••••'}
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
+              Permanent Sandbox wire bearer token.
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Action Row: Verification & Key Regeneration */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          padding: '14px 18px',
-          background: 'rgba(12, 17, 29, 0.5)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '10px',
-          marginBottom: '24px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Action Row: Token Test */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <button
             id="test-token-exchange-btn"
             onClick={handleTestTokenExchange}
             disabled={testingToken}
             style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
+              padding: '10px 18px',
+              borderRadius: '10px',
               background: 'rgba(56, 189, 248, 0.15)',
               border: '1px solid rgba(56, 189, 248, 0.35)',
               color: '#38bdf8',
               fontSize: '0.82rem',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: testingToken ? 'not-allowed' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -484,76 +520,79 @@ export default function MarmotConnectPage({
           </button>
 
           {tokenTestSuccess === true && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--bull-green)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircle2 size={14} /> Token Wire Active & Verified
+            <span style={{ fontSize: '0.8rem', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+              <CheckCircle2 size={15} /> Token Wire Active & Verified
             </span>
           )}
           {tokenTestSuccess === false && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--bear-red)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <AlertTriangle size={14} /> Verification Failed
+            <span style={{ fontSize: '0.8rem', color: '#f43f5e', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+              <AlertTriangle size={15} /> Verification Failed
             </span>
           )}
         </div>
-
-        <button
-          id="regenerate-keys-btn"
-          onClick={handleRegenerateCredentials}
-          disabled={isRegenerating}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '8px',
-            background: 'transparent',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-secondary)',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            cursor: isRegenerating ? 'not-allowed' : 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          <RefreshCw size={13} className={isRegenerating ? 'spin' : ''} />
-          <span>{isRegenerating ? 'Regenerating...' : 'Regenerate API Credentials'}</span>
-        </button>
       </div>
 
-      {/* SECTION 2: Postback Webhook Setup */}
-      <div
-        style={{
-          background: 'rgba(12, 17, 29, 0.75)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '24px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-          <Send size={18} color="#38bdf8" />
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>
-            Order Postback Webhook Dispatcher
-          </h3>
-        </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.83rem', margin: '0 0 16px 0' }}>
-          Whenever orders are filled, modified, or cancelled, ANVIL dispatches instant HTTP POST payloads matching the Dhan v2 Webhook specifications to your endpoint.
-        </p>
+      {/* ========================================================================= */}
+      {/* SECTION 2: POSTBACK WEBHOOK OBSIDIAN CARD (Profile Theme Matching) */}
+      {/* ========================================================================= */}
+      <div className="profile-card">
+        <div className="profile-card-glow cyan" />
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Card Header */}
+        <div className="profile-card-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)',
+                border: '1px solid rgba(6, 182, 212, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Send size={20} color="#06b6d4" />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                  Order Postback Webhook Dispatcher
+                </h3>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    background: 'rgba(6, 182, 212, 0.15)',
+                    color: '#06b6d4',
+                    border: '1px solid rgba(6, 182, 212, 0.3)',
+                  }}
+                >
+                  REAL-TIME DISPATCH
+                </span>
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '4px 0 0 0' }}>
+                Whenever orders are filled, modified, or cancelled, ANVIL dispatches instant HTTP POST payloads matching Dhan v2 Webhook specs.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Webhook Input & Actions */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             id="postback-webhook-input"
             type="url"
             value={postbackUrl}
             onChange={(e) => setPostbackUrl(e.target.value)}
             placeholder="https://your-bot-or-marmot.domain/api/dhan/webhook/"
+            className="profile-input"
             style={{
               flex: 1,
               minWidth: '280px',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              background: '#090d16',
-              border: '1px solid var(--border-subtle)',
-              color: '#ffffff',
-              fontSize: '0.88rem',
               fontFamily: 'var(--font-mono)',
             }}
           />
@@ -562,14 +601,16 @@ export default function MarmotConnectPage({
             onClick={handleSavePostback}
             disabled={savingPostback}
             style={{
-              padding: '10px 20px',
-              borderRadius: '8px',
-              background: '#38bdf8',
+              padding: '12px 24px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
               border: 'none',
-              color: '#090d16',
+              color: '#ffffff',
               fontWeight: 700,
-              fontSize: '0.84rem',
+              fontSize: '0.86rem',
               cursor: savingPostback ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)',
+              transition: 'all 0.15s ease',
             }}
           >
             {savingPostback ? 'Saving...' : 'Save Webhook'}
@@ -579,20 +620,21 @@ export default function MarmotConnectPage({
             onClick={handleTestPostback}
             disabled={testingPostback || !postbackUrl.trim()}
             style={{
-              padding: '10px 18px',
-              borderRadius: '8px',
+              padding: '12px 20px',
+              borderRadius: '10px',
               background: 'rgba(56, 189, 248, 0.12)',
               border: '1px solid rgba(56, 189, 248, 0.35)',
               color: '#38bdf8',
-              fontWeight: 600,
-              fontSize: '0.84rem',
+              fontWeight: 700,
+              fontSize: '0.86rem',
               cursor: (testingPostback || !postbackUrl.trim()) ? 'not-allowed' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
+              transition: 'all 0.15s ease',
             }}
           >
-            <Send size={13} />
+            <Send size={14} />
             <span>{testingPostback ? 'Probing...' : 'Send Test Ping'}</span>
           </button>
         </div>
@@ -601,13 +643,13 @@ export default function MarmotConnectPage({
         {lastProbeResult && (
           <div
             style={{
-              marginTop: '14px',
-              padding: '12px 14px',
-              borderRadius: '8px',
-              fontSize: '0.82rem',
+              marginTop: '16px',
+              padding: '14px 18px',
+              borderRadius: '10px',
+              fontSize: '0.84rem',
               background: lastProbeResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
               border: lastProbeResult.success ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-              color: lastProbeResult.success ? 'var(--bull-green)' : 'var(--bear-red)',
+              color: lastProbeResult.success ? '#10b981' : '#f43f5e',
             }}
           >
             {lastProbeResult.success ? (
@@ -622,8 +664,6 @@ export default function MarmotConnectPage({
           </div>
         )}
       </div>
-
-
     </div>
   );
 }

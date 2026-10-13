@@ -704,20 +704,40 @@ export default function ChartsPage({
 
 
   return (
-    <div id="tradingview-charts-page" className="charts-container-responsive" style={{ color: '#f8fafc' }}>
+    <div id="tradingview-charts-page" className="profile-page-shell charts-container-responsive" style={{ color: '#f8fafc' }}>
       
+      {/* Profile Header */}
+      <div style={{ marginBottom: '22px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill cyan">WORKSPACE</div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Visual Trading Terminal & F&O Charts</span>
+          <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', fontWeight: 700, marginLeft: 'auto' }}>
+            ● TRADINGVIEW V5 ENGINE
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="profile-page-title">
+              Interactive Terminal & Charts
+            </h1>
+            <p className="profile-page-subtitle">
+              High-frequency multi-timeframe candlestick analysis for underlying indices and individual options contracts.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* 1. TradingView Top Control Bar */}
       <div
+        className="profile-card"
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          padding: '10px 16px',
-          background: 'rgba(19, 23, 34, 0.95)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '10px',
+          padding: '12px 18px',
           marginBottom: '16px',
         }}
       >

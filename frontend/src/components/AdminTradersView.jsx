@@ -146,65 +146,74 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
   const activeKillSwitches = traders.filter((t) => t.kill_switch_active).length;
 
   return (
-    <div style={{ padding: '24px 32px' }}>
-      {/* View Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff' }}>Traders Management</h1>
-            <span className="badge-cyan" style={{ fontSize: '0.7rem' }}>ADMIN CONSOLE</span>
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-            Multi-trader roster, virtual margin balances, emergency kill switches, and Dhan API credentials.
-          </p>
+    <div className="profile-page-shell">
+      {/* Profile Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill cyan">ADMIN CONSOLE</div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Multi-Trader Accounts & Ledgers</span>
+          <span className="pill-badge badge-cyan" style={{ fontSize: '0.66rem', marginLeft: 'auto' }}>
+            ● DHAN v2 SANDBOX WIRES
+          </span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="profile-page-title">
+              Traders Management
+            </h1>
+            <p className="profile-page-subtitle">
+              Multi-trader roster, virtual margin balances, emergency kill switches, and Dhan API credentials.
+            </p>
+          </div>
 
-        <button
-          onClick={fetchTraders}
-          disabled={loading}
-          className="btn-secondary"
-          style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-        >
-          <RefreshCw size={15} className={loading ? 'spin' : ''} /> Refresh Roster
-        </button>
+          <button
+            onClick={fetchTraders}
+            disabled={loading}
+            className="profile-btn-ghost"
+          >
+            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+            <span>Refresh Roster</span>
+          </button>
+        </div>
       </div>
 
       {/* Top Metrics Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="glass-panel" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>TOTAL TRADERS</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff' }}>{traders.length}</div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--bull-green)', marginTop: '4px' }}>100% Provisioned & Active</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>TOTAL TRADERS</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{traders.length}</div>
+          <div style={{ fontSize: '0.74rem', color: '#10b981', marginTop: '4px' }}>100% Provisioned & Active</div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>TOTAL VIRTUAL MARGIN</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8' }}>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>TOTAL VIRTUAL MARGIN</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
             ₹{totalMarginDeployed.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>Across all sandbox ledgers</div>
+          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Across all sandbox ledgers</div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>DAY ORDERS EXECUTED</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff' }}>{totalOrders}</div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>Sub-50ms engine fills</div>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>DAY ORDERS EXECUTED</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{totalOrders}</div>
+          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>Sub-50ms engine fills</div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '18px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>ACTIVE KILL SWITCHES</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: activeKillSwitches > 0 ? '#f43f5e' : 'var(--bull-green)' }}>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>ACTIVE KILL SWITCHES</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: activeKillSwitches > 0 ? '#f43f5e' : '#10b981', fontFamily: 'var(--font-mono)' }}>
             {activeKillSwitches}
           </div>
-          <div style={{ fontSize: '0.72rem', color: activeKillSwitches > 0 ? '#f43f5e' : 'var(--bull-green)', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.74rem', color: activeKillSwitches > 0 ? '#f43f5e' : '#10b981', marginTop: '4px' }}>
             {activeKillSwitches > 0 ? 'Accounts Locked' : 'All Accounts Normal'}
           </div>
         </div>
       </div>
 
       {/* Search Bar & Table Header */}
-      <div className="glass-panel-elevated" style={{ borderRadius: '14px', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', background: 'rgba(255, 255, 255, 0.02)' }}>
+      <div className="profile-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 22px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', background: 'rgba(255, 255, 255, 0.02)' }}>
           <div style={{ position: 'relative', width: '360px' }}>
             <Search size={15} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
@@ -212,20 +221,12 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
               placeholder="Filter by name, email, or client ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px 8px 34px',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                background: 'rgba(0, 0, 0, 0.3)',
-                color: '#ffffff',
-                fontSize: '0.82rem',
-                outline: 'none',
-              }}
+              className="profile-input"
+              style={{ paddingLeft: '36px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '0.82rem' }}
             />
           </div>
 
-          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
             Showing <strong>{filteredTraders.length}</strong> of {traders.length} traders
           </div>
         </div>
@@ -399,28 +400,28 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
       {/* Adjust Balance Modal */}
       {isAdjustBalanceOpen && selectedTrader && (
         <div className="modal-overlay" onClick={() => setIsAdjustBalanceOpen(false)}>
-          <div className="modal-box" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="profile-card" style={{ maxWidth: '440px', width: '92%', margin: 'auto', padding: '26px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Wallet size={20} color="var(--accent-primary)" />
-                <h3 style={{ fontSize: '1.2rem', color: '#ffffff' }}>Adjust Margin Balance</h3>
+                <Wallet size={20} color="#06b6d4" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Adjust Margin Balance</h3>
               </div>
               <button onClick={() => setIsAdjustBalanceOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ padding: '12px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>TRADER</div>
-              <div style={{ fontWeight: 600, color: '#ffffff' }}>{selectedTrader.full_name} ({selectedTrader.dhan_client_id})</div>
-              <div style={{ fontSize: '0.85rem', color: '#38bdf8', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+            <div className="profile-tile" style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700 }}>TRADER</div>
+              <div style={{ fontWeight: 700, color: '#ffffff', marginTop: '2px' }}>{selectedTrader.full_name} ({selectedTrader.dhan_client_id})</div>
+              <div style={{ fontSize: '0.86rem', color: '#38bdf8', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
                 Current Margin: ₹{Number(selectedTrader.available_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
             </div>
 
             <form onSubmit={handleAdjustBalanceSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 700, marginBottom: '6px' }}>
                   AMOUNT (POSITIVE FOR DEPOSIT, NEGATIVE FOR WITHDRAWAL)
                 </label>
                 <input
@@ -429,21 +430,13 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
                   required
                   value={adjustAmount}
                   onChange={(e) => setAdjustAmount(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-medium)',
-                    background: 'var(--bg-surface)',
-                    color: '#ffffff',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '1.1rem',
-                  }}
+                  className="profile-input"
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '1.05rem' }}
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <div style={{ marginBottom: '22px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 700, marginBottom: '6px' }}>
                   REASON / LEDGER NOTE
                 </label>
                 <input
@@ -451,23 +444,15 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
                   required
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-medium)',
-                    background: 'var(--bg-surface)',
-                    color: '#ffffff',
-                    fontSize: '0.88rem',
-                  }}
+                  className="profile-input"
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="button" onClick={() => setIsAdjustBalanceOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '10px' }}>
+                <button type="button" onClick={() => setIsAdjustBalanceOpen(false)} className="profile-btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '10px' }}>
+                <button type="submit" className="profile-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
                   Confirm Adjustment
                 </button>
               </div>
@@ -479,11 +464,11 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
       {/* Edit Profile Modal */}
       {isEditProfileOpen && selectedTrader && (
         <div className="modal-overlay" onClick={() => setIsEditProfileOpen(false)}>
-          <div className="modal-box" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="profile-card" style={{ maxWidth: '440px', width: '92%', margin: 'auto', padding: '26px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Edit2 size={20} color="var(--accent-primary)" />
-                <h3 style={{ fontSize: '1.2rem', color: '#ffffff' }}>Edit Trader Profile</h3>
+                <Edit2 size={20} color="#6366f1" />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>Edit Trader Profile</h3>
               </div>
               <button onClick={() => setIsEditProfileOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>
                 <X size={18} />
@@ -491,8 +476,8 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
             </div>
 
             <form onSubmit={handleEditProfileSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 700, marginBottom: '6px' }}>
                   FULL NAME
                 </label>
                 <input
@@ -500,20 +485,12 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-medium)',
-                    background: 'var(--bg-surface)',
-                    color: '#ffffff',
-                    fontSize: '0.88rem',
-                  }}
+                  className="profile-input"
                 />
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 700, marginBottom: '6px' }}>
                   EMAIL ADDRESS
                 </label>
                 <input
@@ -521,25 +498,17 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
                   required
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-medium)',
-                    background: 'var(--bg-surface)',
-                    color: '#ffffff',
-                    fontSize: '0.88rem',
-                  }}
+                  className="profile-input"
                 />
               </div>
 
-              <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ marginBottom: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
                   type="checkbox"
                   id="edit-is-staff-chk"
                   checked={editIsStaff}
                   onChange={(e) => setEditIsStaff(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
                 />
                 <label htmlFor="edit-is-staff-chk" style={{ fontSize: '0.84rem', color: '#ffffff', cursor: 'pointer' }}>
                   Grant Super Admin privileges
@@ -547,10 +516,10 @@ export default function AdminTradersView({ addToast, onSelectTraderForMarmot }) 
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="button" onClick={() => setIsEditProfileOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '10px' }}>
+                <button type="button" onClick={() => setIsEditProfileOpen(false)} className="profile-btn-ghost" style={{ flex: 1, justifyContent: 'center' }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '10px' }}>
+                <button type="submit" className="profile-btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
                   Save Changes
                 </button>
               </div>

@@ -160,168 +160,158 @@ export default function OptionChainPage({
   const pcr = totalCallOi > 0 ? (totalPutOi / totalCallOi).toFixed(2) : '1.00';
 
   return (
-    <div id="option-chain-full-page" className="optionchain-container-responsive" style={{ color: '#f8fafc' }}>
+    <div id="option-chain-full-page" className="profile-page-shell optionchain-container-responsive" style={{ color: '#f8fafc' }}>
       
-      {/* Header Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', margin: 0 }}>
+      {/* Profile Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill cyan">WORKSPACE</div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Real-Time Derivatives Grid</span>
+          <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', fontWeight: 700, marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Radio size={10} className="spin" style={{ animationDuration: '3s' }} />
+            ● LIVE STREAMING
+          </span>
+          <span className="pill-badge badge-purple" style={{ fontSize: '0.66rem' }}>
+            {strikes.length > 0 ? `${strikes.length} STRIKES ACTIVE` : 'CONNECTING FEED...'}
+          </span>
+          {lastWsUpdate && (
+            <span style={{ fontSize: '0.68rem', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+              ⚡ Ticks active
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="profile-page-title">
               Option Chain Matrix
             </h1>
-            <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Radio size={10} className="spin" style={{ animationDuration: '3s' }} />
-              ● LIVE STREAMING
-            </span>
-            <span className="pill-badge badge-purple" style={{ fontSize: '0.66rem' }}>
-              {strikes.length > 0 ? `${strikes.length} STRIKES ACTIVE` : 'CONNECTING FEED...'}
-            </span>
-            {lastWsUpdate && (
-              <span style={{ fontSize: '0.68rem', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
-                ⚡ Ticks active
-              </span>
-            )}
+            <p className="profile-page-subtitle">
+              Real-time Fyers API v3 derivatives grid with live open interest, dynamic ATM strike detection, and 1-click execution.
+            </p>
           </div>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-            Real-time Fyers API v3 derivatives grid with live open interest, dynamic ATM strike detection, and 1-click execution.
-          </p>
-        </div>
 
-        {/* Index Tabs & Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Index Buttons */}
-          <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '8px', padding: '3px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-            {SUPPORTED_INDICES.map((idx) => (
-              <button
-                key={idx.key}
-                onClick={() => {
-                  setSelectedIndex(idx.key);
-                  setChainData(null);
-                }}
+          {/* Index Tabs & Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Index Buttons */}
+            <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '10px', padding: '3px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              {SUPPORTED_INDICES.map((idx) => (
+                <button
+                  key={idx.key}
+                  onClick={() => {
+                    setSelectedIndex(idx.key);
+                    setChainData(null);
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: selectedIndex === idx.key ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
+                    color: selectedIndex === idx.key ? '#06b6d4' : '#94a3b8',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span>{idx.name}</span>
+                  {selectedIndex === idx.key && (
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#06b6d4' }} />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Expiry Selector (Dynamically populated from Fyers expiry_data) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '10px', padding: '7px 12px' }}>
+              <Calendar size={14} color="#94a3b8" />
+              <select
+                value={selectedExpiry}
+                onChange={(e) => setSelectedExpiry(e.target.value)}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
+                  background: 'transparent',
                   border: 'none',
-                  background: selectedIndex === idx.key ? 'rgba(6, 182, 212, 0.2)' : 'transparent',
-                  color: selectedIndex === idx.key ? '#06b6d4' : '#94a3b8',
+                  color: '#ffffff',
                   fontSize: '0.78rem',
-                  fontWeight: 700,
+                  fontWeight: 600,
+                  outline: 'none',
                   cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
                 }}
               >
-                <span>{idx.name}</span>
-                {selectedIndex === idx.key && (
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#06b6d4' }} />
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Expiry Selector (Dynamically populated from Fyers expiry_data) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '8px', padding: '6px 12px' }}>
-            <Calendar size={14} color="#94a3b8" />
-            <select
-              value={selectedExpiry}
-              onChange={(e) => setSelectedExpiry(e.target.value)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#ffffff',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {chainData?.expiry_data && chainData.expiry_data.length > 0 ? (
-                chainData.expiry_data.map((exp, idx) => (
-                  <option key={exp.expiry || idx} value={exp.date} style={{ background: '#0b0e15' }}>
-                    {exp.date} ({exp.expiry_flag === 'W' ? 'Weekly' : 'Monthly'})
+                {chainData?.expiry_data && chainData.expiry_data.length > 0 ? (
+                  chainData.expiry_data.map((exp, idx) => (
+                    <option key={exp.expiry || idx} value={exp.date} style={{ background: '#0b0e15' }}>
+                      {exp.date} ({exp.expiry_flag === 'W' ? 'Weekly' : 'Monthly'})
+                    </option>
+                  ))
+                ) : (
+                  <option value={selectedExpiry || 'CURRENT'} style={{ background: '#0b0e15' }}>
+                    {selectedExpiry || 'Current Expiry'}
                   </option>
-                ))
-              ) : (
-                <option value={selectedExpiry || 'CURRENT'} style={{ background: '#0b0e15' }}>
-                  {selectedExpiry || 'Current Expiry'}
-                </option>
-              )}
-            </select>
-          </div>
+                )}
+              </select>
+            </div>
 
-          {/* Refresh button */}
-          <button
-            onClick={() => fetchChain(selectedIndex, false)}
-            disabled={loading}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#94a3b8',
-              borderRadius: '8px',
-              padding: '7px 12px',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCw size={13} className={loading ? 'spin' : ''} />
-            <span>Refresh</span>
-          </button>
+            {/* Refresh button */}
+            <button
+              onClick={() => fetchChain(selectedIndex, false)}
+              disabled={loading}
+              className="profile-btn-ghost"
+            >
+              <RefreshCw size={13} className={loading ? 'spin' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Spot & Market Metrics Ribbon */}
       <div
-        className="glass-panel"
+        className="profile-card"
         style={{
-          padding: '14px 20px',
-          background: 'rgba(11, 14, 21, 0.95)',
+          padding: '18px 24px',
           marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-          borderLeft: '4px solid #06b6d4',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 600 }}>UNDERLYING INDEX:</span>
-          <span style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-            ₹{Number(spotPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </span>
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: spotCh >= 0 ? '#10b981' : '#f43f5e' }}>
-            {spotCh >= 0 ? '+' : ''}{Number(spotCh || 0).toFixed(2)} ({spotChp >= 0 ? '+' : ''}{Number(spotChp || 0).toFixed(2)}%)
-          </span>
-          <span className="pill-badge" style={{ background: '#eab308', color: '#000000', fontWeight: 800, fontSize: '0.72rem' }}>
-            ATM STRIKE: {atmStrike}
-          </span>
-          {chainData?.indiavix_data && chainData.indiavix_data.ltp > 0 && (
-            <span className="pill-badge badge-blue" style={{ fontSize: '0.72rem' }}>
-              INDIA VIX: {chainData.indiavix_data.ltp} ({chainData.indiavix_data.ltpch >= 0 ? '+' : ''}{chainData.indiavix_data.ltpch}%)
+        <div className="profile-card-glow cyan" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 700 }}>UNDERLYING INDEX:</span>
+            <span style={{ fontSize: '1.55rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+              ₹{Number(spotPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
-          )}
-        </div>
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: spotCh >= 0 ? '#10b981' : '#f43f5e' }}>
+              {spotCh >= 0 ? '+' : ''}{Number(spotCh || 0).toFixed(2)} ({spotChp >= 0 ? '+' : ''}{Number(spotChp || 0).toFixed(2)}%)
+            </span>
+            <span className="pill-badge" style={{ background: '#eab308', color: '#000000', fontWeight: 800, fontSize: '0.72rem' }}>
+              ATM STRIKE: {atmStrike}
+            </span>
+            {chainData?.indiavix_data && chainData.indiavix_data.ltp > 0 && (
+              <span className="pill-badge badge-blue" style={{ fontSize: '0.72rem' }}>
+                INDIA VIX: {chainData.indiavix_data.ltp} ({chainData.indiavix_data.ltpch >= 0 ? '+' : ''}{chainData.indiavix_data.ltpch}%)
+              </span>
+            )}
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '0.8rem', color: '#94a3b8' }}>
-          <div>
-            PCR: <strong style={{ color: Number(pcr) >= 1 ? '#10b981' : '#f43f5e', fontFamily: 'var(--font-mono)' }}>{pcr}</strong>
-          </div>
-          <div>
-            Total Call OI: <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{totalCallOi.toLocaleString('en-IN')}</strong>
-          </div>
-          <div>
-            Total Put OI: <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{totalPutOi.toLocaleString('en-IN')}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '0.82rem', color: '#94a3b8' }}>
+            <div>
+              PCR: <strong style={{ color: Number(pcr) >= 1 ? '#10b981' : '#f43f5e', fontFamily: 'var(--font-mono)' }}>{pcr}</strong>
+            </div>
+            <div>
+              Total Call OI: <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{totalCallOi.toLocaleString('en-IN')}</strong>
+            </div>
+            <div>
+              Total Put OI: <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>{totalPutOi.toLocaleString('en-IN')}</strong>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Full Multi-Strike Dual Matrix Table */}
-      <div className="glass-panel-elevated" style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
+      <div className="profile-card" style={{ padding: 0, overflow: 'hidden', marginBottom: '24px' }}>
         <div style={{ overflowX: 'auto' }}>
           <table className="trading-table" style={{ width: '100%', fontSize: '0.78rem' }}>
             <thead>

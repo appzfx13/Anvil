@@ -312,73 +312,65 @@ export default function Dashboard({
   const sensexTick = ticks['SENSEX'] || { ltp: 74119.30, ch: 450.20, chp: 0.61 };
 
   return (
-    <div id="clean-broker-dashboard" className="desk-container-responsive" style={{ color: '#f8fafc' }}>
+    <div id="clean-broker-dashboard" className="profile-page-shell desk-container-responsive" style={{ color: '#f8fafc' }}>
       
-      {/* 1. Broker Top Header & Quick Action Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', margin: 0 }}>
+      {/* 1. Profile Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill cyan">WORKSPACE</div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Market Desk & Execution Engine</span>
+          <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', fontWeight: 700, marginLeft: 'auto' }}>
+            ● LIVE SIMULATION
+          </span>
+          <span className="pill-badge badge-cyan" style={{ fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
+            CLIENT: {clientId}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="profile-page-title">
               Market Desk
             </h1>
-            <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', fontWeight: 700 }}>
-              ● LIVE SIMULATION
-            </span>
-            <span className="pill-badge badge-cyan" style={{ fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
-              CLIENT: {clientId}
-            </span>
-          </div>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-            Real-time paper trading engine with institutional execution telemetry & Dhan v2 wire compatibility.
-          </p>
-        </div>
-
-        {/* Header Right Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Live Clock Badge */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontSize: '0.78rem',
-              color: '#94a3b8',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
-            <Clock size={14} color="#10b981" />
-            <span style={{ color: '#ffffff', fontWeight: 700 }}>{currentTime || '09:15:00'} IST</span>
-            <span style={{ fontSize: '0.66rem', color: '#10b981' }}>• NSE/BSE LIVE</span>
+            <p className="profile-page-subtitle">
+              Real-time paper trading engine with institutional execution telemetry & Dhan v2 wire compatibility.
+            </p>
           </div>
 
-          {/* Quick Trade Action */}
-          <button
-            id="broker-quick-place-order-btn"
-            onClick={() => {
-              setOrderModalParams({ index: 'NIFTY50', symbol: '', strike: null, side: 'BUY' });
-              setIsOrderModalOpen(true);
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              border: 'none',
-              color: '#ffffff',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
-            }}
-          >
-            <PlusCircle size={15} /> Place Trade
-          </button>
+          {/* Header Right Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Live Clock Badge */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '7px 12px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                color: '#94a3b8',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              <Clock size={14} color="#10b981" />
+              <span style={{ color: '#ffffff', fontWeight: 700 }}>{currentTime || '09:15:00'} IST</span>
+              <span style={{ fontSize: '0.66rem', color: '#10b981' }}>• NSE/BSE LIVE</span>
+            </div>
+
+            {/* Quick Trade Action */}
+            <button
+              id="broker-quick-place-order-btn"
+              onClick={() => {
+                setOrderModalParams({ index: 'NIFTY50', symbol: '', strike: null, side: 'BUY' });
+                setIsOrderModalOpen(true);
+              }}
+              className="profile-btn-primary"
+              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}
+            >
+              <PlusCircle size={15} /> Place Trade
+            </button>
 
           {/* Quick Chart Modal Trigger (Right corner) */}
           <button
@@ -471,6 +463,7 @@ export default function Dashboard({
             <span>Reset Ledger</span>
           </button>
         </div>
+      </div>
       </div>
 
 

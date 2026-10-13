@@ -62,75 +62,90 @@ export default function AdminTradesView({ addToast }) {
   const totalSellVolume = trades.filter(t => t.transaction_type === 'SELL').reduce((acc, t) => acc + (t.traded_qty * t.traded_price), 0);
 
   return (
-    <div style={{ padding: '24px 32px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff' }}>All Trades Ledger</h1>
-            <span className="badge-emerald" style={{ fontSize: '0.7rem' }}>LIVE MATCHED FILLS</span>
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-            Comprehensive trade executions and exchange fill timestamps across all simulated trader accounts.
-          </p>
+    <div className="profile-page-shell">
+      {/* Profile Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill emerald">WORKSPACE</div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Order Executions & Fill Ledger</span>
+          <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', marginLeft: 'auto' }}>
+            ● LIVE MATCHED FILLS
+          </span>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="profile-page-title">
+              All Trades Ledger
+            </h1>
+            <p className="profile-page-subtitle">
+              Comprehensive trade executions and exchange fill timestamps across all simulated trader accounts.
+            </p>
+          </div>
 
-        <button
-          onClick={fetchTrades}
-          disabled={loading}
-          className="btn-secondary"
-          style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-        >
-          <RefreshCw size={15} className={loading ? 'spin' : ''} /> Refresh Trades
-        </button>
+          <button
+            onClick={fetchTrades}
+            disabled={loading}
+            className="profile-btn-ghost"
+          >
+            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+            <span>Refresh Trades</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="glass-panel" style={{ padding: '16px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>TOTAL TRADES EXECUTED</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff' }}>{trades.length}</div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--bull-green)', marginTop: '2px' }}>Instant virtual ledger settlement</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+            TOTAL TRADES EXECUTED
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+            {trades.length}
+          </div>
+          <div style={{ fontSize: '0.74rem', color: '#10b981', marginTop: '4px' }}>
+            Instant virtual ledger settlement
+          </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '16px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>BUY TURNOVER</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--bull-green)' }}>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+            BUY TURNOVER
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
             ₹{totalBuyVolume.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Gross long premium filled</div>
+          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+            Gross long premium filled
+          </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '16px 20px' }}>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>SELL TURNOVER</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--bear-red)' }}>
+        <div className="profile-metric-tile">
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+            SELL TURNOVER
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f43f5e', fontFamily: 'var(--font-mono)' }}>
             ₹{totalSellVolume.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Gross short premium filled</div>
+          <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+            Gross short premium filled
+          </div>
         </div>
       </div>
 
       {/* Filter and Table Container */}
-      <div className="glass-panel-elevated" style={{ borderRadius: '14px', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', background: 'rgba(255, 255, 255, 0.02)' }}>
+      <div className="profile-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 22px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', background: 'rgba(255, 255, 255, 0.02)' }}>
           {/* Search Bar */}
-          <div style={{ position: 'relative', width: '320px' }}>
+          <div style={{ position: 'relative', width: '340px' }}>
             <Search size={15} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
               placeholder="Filter by symbol, client ID, or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px 8px 34px',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                background: 'rgba(0, 0, 0, 0.3)',
-                color: '#ffffff',
-                fontSize: '0.82rem',
-                outline: 'none',
-              }}
+              className="profile-input"
+              style={{ paddingLeft: '36px', paddingRight: '12px', paddingTop: '8px', paddingBottom: '8px', fontSize: '0.82rem' }}
             />
           </div>
 
@@ -141,15 +156,16 @@ export default function AdminTradesView({ addToast }) {
                 key={side}
                 onClick={() => setSideFilter(side)}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
+                  padding: '7px 14px',
+                  borderRadius: '8px',
                   border: '1px solid',
-                  borderColor: sideFilter === side ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.08)',
+                  borderColor: sideFilter === side ? '#6366f1' : 'rgba(255, 255, 255, 0.08)',
                   background: sideFilter === side ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                  color: sideFilter === side ? '#ffffff' : 'var(--text-muted)',
+                  color: sideFilter === side ? '#ffffff' : '#94a3b8',
                   fontSize: '0.76rem',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {side}

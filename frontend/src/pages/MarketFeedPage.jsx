@@ -162,137 +162,129 @@ export default function MarketFeedPage({
   };
 
   return (
-    <div id="market-feed-page" style={{ padding: '24px 32px', width: '100%', boxSizing: 'border-box' }}>
+    <div id="market-feed-page" className="profile-page-shell">
       
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', margin: 0 }}>
+      {/* Profile-Consistent Header */}
+      <div style={{ marginBottom: '28px' }}>
+        <div className="profile-header-badge">
+          <div className="profile-category-pill cyan">INTEGRATIONS</div>
+          <span style={{ color: '#475569', fontSize: '0.8rem' }}>/</span>
+          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Fyers API v3 Streaming Feed</span>
+          <span
+            className={hasToken ? 'pill-badge badge-emerald' : 'pill-badge badge-amber'}
+            style={{ fontSize: '0.66rem', fontWeight: 700, marginLeft: 'auto' }}
+          >
+            {hasToken ? '● FYERS v3 ACTIVE' : '○ TOKEN REQUIRED'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 className="profile-page-title">
               Market Data Feed Configuration
             </h1>
-            <span
-              className={hasToken ? 'pill-badge badge-emerald' : 'pill-badge badge-amber'}
-              style={{ fontSize: '0.66rem', fontWeight: 700 }}
-            >
-              {hasToken ? '● FYERS v3 ACTIVE' : '○ TOKEN REQUIRED'}
-            </span>
+            <p className="profile-page-subtitle">
+              Connect Fyers API v3 WebSocket streaming & Level-1 quotes for real-time market data across all ANVIL terminals.
+            </p>
           </div>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-            Connect Fyers API v3 WebSocket streaming & Level-1 quotes for real-time market data across all ANVIL terminals.
-          </p>
-        </div>
 
-        {/* Top Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={handleTestFeed}
-            disabled={testing}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(6, 182, 212, 0.15)',
-              border: '1px solid rgba(6, 182, 212, 0.4)',
-              color: '#06b6d4',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCw size={14} className={testing ? 'spin' : ''} />
-            <span>{testing ? 'Testing Feed...' : 'Test Feed Connection'}</span>
-          </button>
+          {/* Top Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              onClick={handleTestFeed}
+              disabled={testing}
+              className="profile-btn-ghost"
+            >
+              <RefreshCw size={14} className={testing ? 'spin' : ''} />
+              <span>{testing ? 'Testing Feed...' : 'Test Feed Connection'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Connection Status Banner */}
-      <div
-        className="glass-panel"
-        style={{
-          padding: '16px 20px',
-          background: 'rgba(11, 14, 21, 0.95)',
-          marginBottom: '24px',
-          borderLeft: hasToken ? '4px solid #10b981' : '4px solid #f59e0b',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div
+      <div className="profile-card" style={{ padding: '22px 26px', marginBottom: '24px' }}>
+        <div className={`profile-card-glow ${hasToken ? 'emerald' : 'amber'}`} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: hasToken ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                border: `1px solid ${hasToken ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Radio size={22} color={hasToken ? '#10b981' : '#f59e0b'} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '1.05rem' }}>
+                  {hasToken ? 'Fyers WebSocket Stream Live' : 'Fyers Data Feed Not Authenticated'}
+                </span>
+                <span className={hasToken ? 'pill-badge badge-emerald' : 'pill-badge badge-amber'} style={{ fontSize: '0.66rem' }}>
+                  {feedStatus}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '4px' }}>
+                {hasToken
+                  ? 'Level-1 real quotes streaming for NIFTY 50, BANK NIFTY, FIN NIFTY, and full option chains.'
+                  : 'Click "Authenticate with Fyers" below to log in and authorize live market feed.'}
+              </div>
+            </div>
+          </div>
+
+          {/* Right CTA */}
+          <button
+            onClick={handleStartFyersAuth}
             style={{
-              width: '42px',
-              height: '42px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              border: 'none',
+              color: '#000000',
+              fontWeight: 800,
               borderRadius: '10px',
-              background: hasToken ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+              padding: '11px 20px',
+              fontSize: '0.86rem',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)',
+              transition: 'all 0.2s ease',
             }}
           >
-            <Radio size={22} color={hasToken ? '#10b981' : '#f59e0b'} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 800, color: '#ffffff', fontSize: '0.98rem' }}>
-                {hasToken ? 'Fyers WebSocket Stream Live' : 'Fyers Data Feed Not Authenticated'}
-              </span>
-              <span className={hasToken ? 'pill-badge badge-emerald' : 'pill-badge badge-amber'} style={{ fontSize: '0.64rem' }}>
-                {feedStatus}
-              </span>
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-              {hasToken
-                ? 'Level-1 real quotes streaming for NIFTY 50, BANK NIFTY, FIN NIFTY, and full option chains.'
-                : 'Click "Authenticate with Fyers" below to log in and authorize live market feed.'}
-            </div>
-          </div>
+            <ExternalLink size={15} />
+            <span>{hasToken ? 'Re-Authenticate with Fyers' : 'Authenticate with Fyers'}</span>
+          </button>
         </div>
-
-        {/* Right CTA */}
-        <button
-          onClick={handleStartFyersAuth}
-          style={{
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            border: 'none',
-            color: '#000000',
-            fontWeight: 800,
-            borderRadius: '8px',
-            padding: '10px 18px',
-            fontSize: '0.84rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)',
-          }}
-        >
-          <ExternalLink size={15} />
-          <span>{hasToken ? 'Re-Authenticate with Fyers' : 'Authenticate with Fyers'}</span>
-        </button>
       </div>
 
       {/* Grid: Credentials Form (Left) + Callback & Docs (Right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px, 1fr) 380px', gap: '20px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(420px, 1fr) 380px', gap: '24px', marginBottom: '24px' }}>
         
         {/* Form: App ID, Secret Key, Token */}
-        <div className="glass-panel" style={{ padding: '24px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>
-            Fyers API v3 App Credentials
-          </h2>
-          <p style={{ fontSize: '0.74rem', color: '#64748b', marginBottom: '20px' }}>
-            Created in your Fyers API dashboard (myapi.fyers.in). Stored securely in database.
-          </p>
+        <div className="profile-card" style={{ marginBottom: 0 }}>
+          <div className="profile-card-glow cyan" />
+          <div className="profile-card-header">
+            <div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <KeyRound size={18} color="#06b6d4" />
+                <span>Fyers API v3 App Credentials</span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                Created in your Fyers API dashboard (myapi.fyers.in). Stored securely in database.
+              </p>
+            </div>
+            <span className="profile-category-pill cyan">LEVEL-1 QUOTES</span>
+          </div>
 
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '18px', position: 'relative', zIndex: 1 }}>
             {/* App ID */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
                 FYERS APP ID <span style={{ color: '#f43f5e' }}>*</span>
               </label>
               <input
@@ -300,29 +292,21 @@ export default function MarketFeedPage({
                 value={appId}
                 onChange={(e) => setAppId(e.target.value)}
                 placeholder="e.g. A1B2C3D4-100"
-                style={{
-                  width: '100%',
-                  background: '#06080c',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#ffffff',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.88rem',
-                  fontFamily: 'var(--font-mono)',
-                }}
+                className="profile-input"
+                style={{ fontFamily: 'var(--font-mono)' }}
               />
             </div>
 
             {/* Secret Key */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 700 }}>
+                <label style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 700 }}>
                   SECRET KEY <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowSecret(!showSecret)}
-                  style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   {showSecret ? <EyeOff size={13} /> : <Eye size={13} />}
                   <span>{showSecret ? 'Hide' : 'Show'}</span>
@@ -333,22 +317,14 @@ export default function MarketFeedPage({
                 value={secretKey}
                 onChange={(e) => setSecretKey(e.target.value)}
                 placeholder="••••••••••••••••••••••••••••••••"
-                style={{
-                  width: '100%',
-                  background: '#06080c',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#ffffff',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.88rem',
-                  fontFamily: 'var(--font-mono)',
-                }}
+                className="profile-input"
+                style={{ fontFamily: 'var(--font-mono)' }}
               />
             </div>
 
             {/* Manual Access Token (Optional) */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.76rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 700 }}>
                 ACCESS TOKEN (MANUAL OVERRIDE OR AUTO-GENERATED)
               </label>
               <input
@@ -356,37 +332,18 @@ export default function MarketFeedPage({
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
                 placeholder={hasToken ? '••••••••••••••••••••••••••••••••' : 'Paste manual token or click Authenticate'}
-                style={{
-                  width: '100%',
-                  background: '#06080c',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#ffffff',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '0.88rem',
-                  fontFamily: 'var(--font-mono)',
-                }}
+                className="profile-input"
+                style={{ fontFamily: 'var(--font-mono)' }}
               />
             </div>
 
             {/* Save Button */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
               <button
                 type="submit"
                 disabled={saving}
-                style={{
-                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '11px 20px',
-                  fontWeight: 800,
-                  fontSize: '0.86rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
+                className="profile-btn-primary"
+                style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', boxShadow: '0 4px 14px rgba(6, 182, 212, 0.3)' }}
               >
                 {saving ? <RefreshCw size={15} className="spin" /> : <Check size={15} />}
                 <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
@@ -396,19 +353,24 @@ export default function MarketFeedPage({
         </div>
 
         {/* Right: Callback URL & Setup Guide */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Redirect URI Card */}
-          <div className="glass-panel" style={{ padding: '20px', background: 'rgba(11, 14, 21, 0.95)' }}>
-            <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', marginBottom: '4px' }}>
-              OAuth 2.0 Redirect Callback URL
-            </h3>
-            <p style={{ fontSize: '0.74rem', color: '#64748b', marginBottom: '12px' }}>
+          <div className="profile-card" style={{ padding: '22px', marginBottom: 0 }}>
+            <div className="profile-card-header" style={{ marginBottom: '14px', paddingBottom: '14px' }}>
+              <div>
+                <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Globe size={16} color="#06b6d4" />
+                  <span>OAuth 2.0 Redirect Callback URL</span>
+                </div>
+              </div>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '12px' }}>
               Paste this exact URL into the "Redirect URI" field in your Fyers App dashboard:
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#06080c', border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: '6px', padding: '8px 10px' }}>
-              <span style={{ flex: 1, fontSize: '0.76rem', color: '#38bdf8', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', padding: '10px 12px' }}>
+              <span style={{ flex: 1, fontSize: '0.78rem', color: '#38bdf8', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
                 {redirectUri || defaultCallback}
               </span>
               <button
@@ -423,11 +385,14 @@ export default function MarketFeedPage({
           </div>
 
           {/* Setup Steps */}
-          <div className="glass-panel" style={{ padding: '20px', background: 'rgba(11, 14, 21, 0.95)' }}>
-            <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', marginBottom: '12px' }}>
-              Setup in 3 Steps
-            </h3>
-            <ol style={{ paddingLeft: '18px', margin: 0, fontSize: '0.76rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="profile-card" style={{ padding: '22px', marginBottom: 0 }}>
+            <div className="profile-card-header" style={{ marginBottom: '14px', paddingBottom: '14px' }}>
+              <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck size={16} color="#10b981" />
+                <span>Setup in 3 Steps</span>
+              </div>
+            </div>
+            <ol style={{ paddingLeft: '18px', margin: 0, fontSize: '0.8rem', color: '#94a3b8', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <li>
                 Open <strong>myapi.fyers.in</strong> and copy your <strong>App ID</strong> & <strong>Secret Key</strong>.
               </li>
@@ -443,17 +408,18 @@ export default function MarketFeedPage({
           {/* Test Result Info */}
           {testResult && (
             <div
-              className="glass-panel"
+              className="profile-card"
               style={{
-                padding: '16px',
+                padding: '16px 20px',
+                marginBottom: 0,
                 background: testResult.status === 'OK' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
                 border: `1px solid ${testResult.status === 'OK' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
               }}
             >
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: testResult.status === 'OK' ? '#10b981' : '#f43f5e', marginBottom: '4px' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: testResult.status === 'OK' ? '#10b981' : '#f43f5e', marginBottom: '4px' }}>
                 {testResult.status === 'OK' ? '✓ Feed Connection Successful' : '✗ Feed Connection Failed'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+              <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
                 {testResult.message || `Connected to Fyers. NIFTY 50 quote: ₹${testResult.nifty_ltp}`}
               </div>
             </div>
