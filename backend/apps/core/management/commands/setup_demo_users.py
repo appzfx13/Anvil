@@ -25,7 +25,7 @@ class Command(BaseCommand):
                 'balance': Decimal('500000.00'),
             },
             {
-                'email': 'trader1@anvil.local',
+                'email': 'appzfx13@gmail.local',
                 'full_name': 'Vikram Quant',
                 'dhan_client_id': '1000000002',
                 'client_secret': 'sec_anvil_trader1_secret_02',

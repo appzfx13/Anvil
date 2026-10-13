@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Wallet,
   TrendingUp,
@@ -126,11 +126,75 @@ export default function Dashboard({
   const estimatedTaxes = tradedCount > 0 ? Math.round(tradedCount * 4.5 * 100) / 100 : 0;
   const totalBrokerageCharges = estimatedBrokerage + estimatedTaxes;
 
-  // Margins
-  const availableBal = Number(account?.available_balance || 500000);
-  const utilizedMargin = Number(account?.utilized_margin || 0);
-  const totalCapital = Math.max(availableBal + utilizedMargin, 500000);
-  const marginUtilizedPct = Math.min(100, Math.round((utilizedMargin / totalCapital) * 100));
+  // Margins (respect 0 initial balance)
+  const availableBal = Number(account?.available_balance ?? 0);
+  const utilizedMargin = Number(account?.utilized_margin ?? 0);
+  const totalCapital = Math.max(availableBal + utilizedMargin, Number(account?.sod_limit ?? 0), 1);
+  const marginUtilizedPct = totalCapital > 0 ? Math.min(100, Math.round((utilizedMargin / totalCapital) * 100)) : 0;
+
+  // Dynamic Intraday Equity Curve Points Calculation
+  const equityPoints = useMemo(() => {
+    // Zero / No trades case: Clean Flat baseline
+    if ((!trades || trades.length === 0) && totalPnl === 0) {
+      return {
+        hasData: false,
+        linePath: 'M 0 60 L 500 60',
+        areaPath: '',
+        lastX: 500,
+        lastY: 60,
+        color: '#64748b',
+        maxAbs: 0,
+      };
+    }
+
+    // When there are real trades or active non-zero MTM PnL
+    const points = [{ x: 0, yVal: 0 }];
+    let runningPnl = 0;
+
+    if (trades && trades.length > 0) {
+      // Sort trades chronologically
+      const sortedTrades = [...trades].sort((a, b) => {
+        const tA = new Date(a.exchangeTime || a.tradeTime || a.created_at || 0).getTime();
+        const tB = new Date(b.exchangeTime || b.tradeTime || b.created_at || 0).getTime();
+        return tA - tB;
+      });
+
+      const totalTrades = sortedTrades.length;
+      sortedTrades.forEach((trd, idx) => {
+        const tradePnl = Number(trd.realized_pnl || trd.realizedProfit || 0);
+        runningPnl += tradePnl;
+        const x = Math.round(((idx + 1) / (totalTrades + 1)) * 460) + 20;
+        points.push({ x, yVal: runningPnl });
+      });
+    }
+
+    // Add final point representing current MTM totalPnl at current time
+    points.push({ x: 500, yVal: totalPnl });
+
+    // Determine scale: max absolute deviation (minimum 100 for visual stability)
+    const maxAbs = Math.max(...points.map((p) => Math.abs(p.yVal)), Math.abs(totalPnl), 100);
+
+    // Map yVal to SVG canvas y (0 to 120, baseline = 60)
+    // Positive PnL goes UP (y < 60), Negative PnL goes DOWN (y > 60)
+    const svgCoords = points.map((p) => {
+      const y = Math.round(60 - (p.yVal / maxAbs) * 45);
+      return { x: p.x, y: Math.max(10, Math.min(110, y)) };
+    });
+
+    const linePath = svgCoords.reduce((acc, pt, i) => (i === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`), '');
+    const areaPath = `${linePath} L 500 120 L 0 120 Z`;
+    const lastPt = svgCoords[svgCoords.length - 1];
+
+    return {
+      hasData: true,
+      linePath,
+      areaPath,
+      lastX: lastPt.x,
+      lastY: lastPt.y,
+      color: totalPnl >= 0 ? '#10b981' : '#f43f5e',
+      maxAbs,
+    };
+  }, [trades, totalPnl]);
 
   // Filtered Positions
   const filteredPositions = positions.filter((p) => {
@@ -618,11 +682,11 @@ export default function Dashboard({
           marginBottom: '24px',
         }}
       >
-        {/* Widget 1: Intraday Portfolio Equity Curve (Graph) */}
+        {/* Widget 1: Intraday Portfolio Equity Curve (Dynamic Graph) */}
         <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Activity size={16} color="#10b981" />
+              <Activity size={16} color={equityPoints.color} />
               <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#ffffff' }}>
                 Equity Curve Progression
               </span>
@@ -631,15 +695,17 @@ export default function Dashboard({
               style={{
                 fontWeight: 800,
                 fontFamily: 'var(--font-mono)',
-                color: totalPnl >= 0 ? '#10b981' : '#f43f5e',
+                color: totalPnl > 0 ? '#10b981' : totalPnl < 0 ? '#f43f5e' : '#94a3b8',
                 fontSize: '0.92rem',
               }}
             >
-              {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
+              {totalPnl > 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
             </span>
           </div>
           <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '14px' }}>
-            Mark-to-market progression across trading hours • {trades.length} fills recorded
+            {equityPoints.hasData
+              ? `Mark-to-market progression across trading hours • ${trades.length} fills recorded`
+              : 'Flat baseline (₹0.00) • 0 fills recorded'}
           </div>
 
           {/* SVG Line Graph */}
@@ -656,35 +722,57 @@ export default function Dashboard({
                 </linearGradient>
               </defs>
 
+              {/* Grid Lines */}
               <line x1="0" y1="30" x2="500" y2="30" stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
-              <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.08)" />
+              <line x1="0" y1="60" x2="500" y2="60" stroke={equityPoints.hasData ? "rgba(255,255,255,0.08)" : "rgba(100,116,139,0.3)"} strokeDasharray={equityPoints.hasData ? undefined : "4 4"} />
               <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
 
-              {totalPnl >= 0 ? (
+              {equityPoints.hasData ? (
                 <>
+                  {equityPoints.areaPath && (
+                    <path
+                      d={equityPoints.areaPath}
+                      fill={totalPnl >= 0 ? "url(#equityGradGreen)" : "url(#equityGradRed)"}
+                    />
+                  )}
                   <path
-                    d="M 0 65 Q 120 62, 220 54 T 360 48 T 500 42"
+                    d={equityPoints.linePath}
                     fill="none"
-                    stroke="#10b981"
+                    stroke={equityPoints.color}
                     strokeWidth="2.5"
                   />
-                  <path
-                    d="M 0 65 Q 120 62, 220 54 T 360 48 T 500 42 L 500 120 L 0 120 Z"
-                    fill="url(#equityGradGreen)"
+                  <circle
+                    cx={equityPoints.lastX}
+                    cy={equityPoints.lastY}
+                    r="4"
+                    fill={equityPoints.color}
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
                   />
                 </>
               ) : (
+                /* Pure flat zero baseline when no trades / 0 PnL */
                 <>
-                  <path
-                    d="M 0 55 Q 120 58, 220 66 T 360 74 T 500 82"
-                    fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth="2.5"
+                  <line
+                    x1="0"
+                    y1="60"
+                    x2="500"
+                    y2="60"
+                    stroke="#475569"
+                    strokeWidth="2"
+                    strokeDasharray="6 4"
                   />
-                  <path
-                    d="M 0 55 Q 120 58, 220 66 T 360 74 T 500 82 L 500 120 L 0 120 Z"
-                    fill="url(#equityGradRed)"
-                  />
+                  <text
+                    x="250"
+                    y="52"
+                    fill="#64748b"
+                    fontSize="10"
+                    textAnchor="middle"
+                    fontFamily="var(--font-mono)"
+                  >
+                    No Trading Activity (MTM: ₹0.00)
+                  </text>
+                  <circle cx="500" cy="60" r="3" fill="#64748b" />
                 </>
               )}
             </svg>
