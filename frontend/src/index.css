@@ -679,26 +679,10 @@ h1, h2, h3, h4, h5, h6 {
   box-sizing: border-box;
 }
 
-.marmot-container-responsive {
-  width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 24px 20px;
-  box-sizing: border-box;
-}
-
-.profile-container-responsive {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 20px 60px;
-  box-sizing: border-box;
-}
-
+.marmot-container-responsive,
+.profile-container-responsive,
 .feed-container-responsive {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
   padding: 24px 32px;
   box-sizing: border-box;
 }
@@ -767,21 +751,6 @@ h1, h2, h3, h4, h5, h6 {
     padding: 28px 44px;
   }
 
-  .marmot-container-responsive {
-    max-width: 1680px;
-    padding: 28px 36px;
-  }
-
-  .profile-container-responsive {
-    max-width: 1620px;
-    padding: 28px 36px 80px;
-  }
-
-  .feed-container-responsive {
-    max-width: 1880px;
-    padding: 28px 40px;
-  }
-
   .home-container-responsive {
     max-width: 1800px;
     padding: 40px 36px 80px;
@@ -839,21 +808,6 @@ h1, h2, h3, h4, h5, h6 {
   .optionchain-container-responsive {
     max-width: 2500px;
     padding: 32px 52px;
-  }
-
-  .marmot-container-responsive {
-    max-width: 1920px;
-    padding: 32px 48px;
-  }
-
-  .profile-container-responsive {
-    max-width: 1880px;
-    padding: 32px 48px 90px;
-  }
-
-  .feed-container-responsive {
-    max-width: 2200px;
-    padding: 32px 48px;
   }
 
   .home-container-responsive {

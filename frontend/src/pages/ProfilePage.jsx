@@ -189,7 +189,7 @@ gateway.connect()`;
   }, null, 2);
 
   return (
-    <div id="profile-page-container" className="profile-container-responsive">
+    <div id="profile-page-container" style={{ padding: '24px 32px', width: '100%', boxSizing: 'border-box' }}>
       {/* Page Header */}
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -226,7 +226,7 @@ gateway.connect()`;
         >
           User Profile & Marmot Gateway
         </h1>
-        <p style={{ color: '#94a3b8', fontSize: '0.92rem', margin: 0, maxWidth: '750px' }}>
+        <p style={{ color: '#94a3b8', fontSize: '0.92rem', margin: 0 }}>
           Manage your personal trader identity and access your dedicated Dhan-compatible API credentials for Marmot bot automated execution.
         </p>
       </div>

@@ -213,7 +213,7 @@ print("Order Status:", order_response)
   }, null, 2);
 
   return (
-    <div id="marmot-connect-page" className="marmot-container-responsive">
+    <div id="marmot-connect-page" style={{ padding: '24px 32px', width: '100%', boxSizing: 'border-box' }}>
       {/* Page Title & Status Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
