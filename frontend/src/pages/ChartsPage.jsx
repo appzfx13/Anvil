@@ -542,7 +542,7 @@ export default function ChartsPage({
 
 
   return (
-    <div id="tradingview-charts-page" style={{ padding: '20px 28px', color: '#f8fafc', maxWidth: '1750px', margin: '0 auto' }}>
+    <div id="tradingview-charts-page" className="charts-container-responsive" style={{ color: '#f8fafc' }}>
       
       {/* 1. TradingView Top Control Bar */}
       <div
@@ -801,7 +801,7 @@ export default function ChartsPage({
       </div>
 
       {/* 2. Main Visual Workspace: Chart + Order Ticket */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '16px', marginBottom: '16px' }}>
+      <div className="charts-workspace-grid">
         
         {/* TradingView Chart Container Card */}
         <div
@@ -862,12 +862,7 @@ export default function ChartsPage({
           {/* Interactive Lightweight Chart Container */}
           <div
             ref={chartContainerRef}
-            style={{
-              width: '100%',
-              height: '520px',
-              position: 'relative',
-              background: '#090d14',
-            }}
+            className="tradingview-chart-box"
           >
             {isLoading && (
               <div

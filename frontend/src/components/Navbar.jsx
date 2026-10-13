@@ -26,10 +26,8 @@ export default function Navbar({
     >
       {/* Top Brand & Nav Row */}
       <div
+        className="navbar-container-responsive"
         style={{
-          maxWidth: '1440px',
-          margin: '0 auto',
-          padding: '12px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

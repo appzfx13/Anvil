@@ -450,7 +450,7 @@ export default function App() {
           />
 
           {/* Main Viewport */}
-          <div className="main-viewport" style={{ flex: 1, marginLeft: '250px', display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#06080c' }}>
+          <div className="main-viewport" style={{ flex: 1, marginLeft: 'var(--sidebar-width, 250px)', display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#06080c' }}>
             <TopHeader
               user={user}
               account={account}

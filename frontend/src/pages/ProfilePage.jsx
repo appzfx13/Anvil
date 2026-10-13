@@ -189,7 +189,7 @@ gateway.connect()`;
   }, null, 2);
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px 60px' }}>
+    <div id="profile-page-container" className="profile-container-responsive">
       {/* Page Header */}
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>

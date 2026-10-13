@@ -47,7 +47,7 @@ export default function Sidebar({
       id="antigravity-sidebar-navigation"
       className="sidebar-nav"
       style={{
-        width: '250px',
+        width: 'var(--sidebar-width, 250px)',
         height: '100vh',
         position: 'fixed',
         left: 0,

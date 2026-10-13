@@ -176,7 +176,7 @@ export default function HomePage({ user, account, onNavigate, onLoginSuccess, ad
   };
 
   return (
-    <div id="home-page-container" style={{ maxWidth: '1360px', margin: '0 auto', padding: '30px 24px 60px' }}>
+    <div id="home-page-container" className="home-container-responsive">
       {/* Top Banner Tag */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <div

@@ -160,7 +160,7 @@ export default function OptionChainPage({
   const pcr = totalCallOi > 0 ? (totalPutOi / totalCallOi).toFixed(2) : '1.00';
 
   return (
-    <div id="option-chain-full-page" style={{ padding: '24px 32px', color: '#f8fafc', maxWidth: '1700px', margin: '0 auto' }}>
+    <div id="option-chain-full-page" className="optionchain-container-responsive" style={{ color: '#f8fafc' }}>
       
       {/* Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>

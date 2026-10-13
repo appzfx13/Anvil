@@ -312,7 +312,7 @@ export default function Dashboard({
   const sensexTick = ticks['SENSEX'] || { ltp: 74119.30, ch: 450.20, chp: 0.61 };
 
   return (
-    <div id="clean-broker-dashboard" style={{ padding: '24px 32px', color: '#f8fafc', maxWidth: '1600px', margin: '0 auto' }}>
+    <div id="clean-broker-dashboard" className="desk-container-responsive" style={{ color: '#f8fafc' }}>
       
       {/* 1. Broker Top Header & Quick Action Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>

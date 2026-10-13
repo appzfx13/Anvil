@@ -210,7 +210,7 @@ export default function TopHeader({
       </div>
 
       {/* Center: Global Search Command Palette (Matching screenshot) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, maxWidth: '540px', margin: '0 20px' }}>
+      <div className="topheader-search-responsive">
         <div
           style={{
             position: 'relative',

@@ -162,7 +162,7 @@ export default function MarketFeedPage({
   };
 
   return (
-    <div id="market-feed-page" style={{ padding: '24px 32px', color: '#f8fafc', maxWidth: '1400px', margin: '0 auto' }}>
+    <div id="market-feed-page" className="feed-container-responsive" style={{ color: '#f8fafc' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
