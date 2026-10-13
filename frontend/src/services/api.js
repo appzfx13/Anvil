@@ -42,6 +42,7 @@ export const api = {
     demoLogin: (email) => request(`${API_BASE}/auth/demo-login/`, { method: 'POST', body: JSON.stringify(email ? { email } : {}) }),
     adminLogin: (credentials) => request(`${API_BASE}/auth/admin-login/`, { method: 'POST', body: JSON.stringify(credentials) }),
     getMe: () => request(`${API_BASE}/auth/me/`),
+    updateProfile: (data) => request(`${API_BASE}/auth/me/`, { method: 'PUT', body: JSON.stringify(data) }),
     resetCredentials: () => request(`${API_BASE}/auth/reset-keys/`, { method: 'POST' }),
   },
 

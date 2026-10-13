@@ -16,6 +16,7 @@ import OptionChainPage from './pages/OptionChainPage';
 import ChartsPage from './pages/ChartsPage';
 import MarketFeedPage from './pages/MarketFeedPage';
 import MarmotConnectPage from './pages/MarmotConnectPage';
+import ProfilePage from './pages/ProfilePage';
 import AuthPage from './pages/AuthPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import { api } from './services/api';
@@ -36,6 +37,7 @@ const PATH_TO_VIEW = {
   '/feed-config': 'feed',
   '/marmot': 'marmot',
   '/marmot-connect': 'marmot',
+  '/profile': 'profile',
   '/trades': 'trades',
   '/orders': 'trades',
   '/traders': 'traders',
@@ -51,6 +53,7 @@ const VIEW_TO_PATH = {
   optionchain: '/optionchain',
   feed: '/feed',
   marmot: '/marmot',
+  profile: '/profile',
   trades: '/trades',
   traders: '/traders',
   auth: '/auth',
@@ -336,11 +339,6 @@ export default function App() {
       setCurrentView('admin_login');
       return;
     }
-    if (view === 'profile') {
-      setSelectedTraderForProfile(user);
-      setIsProfileModalOpen(true);
-      return;
-    }
     if (view === 'marmot_config') {
       view = 'marmot';
     }
@@ -458,10 +456,7 @@ export default function App() {
               account={account}
               siteConfig={siteConfig}
               onOpenDataFeed={() => setIsDataFeedModalOpen(true)}
-              onOpenProfile={() => {
-                setSelectedTraderForProfile(user);
-                setIsProfileModalOpen(true);
-              }}
+              onOpenProfile={() => handleNavigate('profile')}
               onNavigate={handleNavigate}
             />
 
@@ -538,6 +533,20 @@ export default function App() {
                   account={account}
                   onRefreshAccount={fetchSession}
                   addToast={addToast}
+                />
+              )}
+
+              {/* 6. Dedicated Profile & Marmot API Credentials Page */}
+              {currentView === 'profile' && (
+                <ProfilePage
+                  user={user}
+                  account={account}
+                  onRefreshAccount={fetchSession}
+                  onUpdateUser={(updatedUser) => {
+                    setUser(updatedUser);
+                  }}
+                  addToast={addToast}
+                  onNavigate={handleNavigate}
                 />
               )}
             </main>

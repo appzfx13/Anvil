@@ -322,7 +322,8 @@ export default function TopHeader({
         <div
           id="top-header-profile-chip"
           onClick={() => {
-            if (onOpenProfile) onOpenProfile();
+            if (onNavigate) onNavigate('profile');
+            else if (onOpenProfile) onOpenProfile();
           }}
           style={{
             display: 'flex',

@@ -341,7 +341,8 @@ export default function Sidebar({
         {/* Profile trigger */}
         <div
           onClick={() => {
-            if (onOpenProfile) onOpenProfile();
+            if (onNavigate) onNavigate('profile');
+            else if (onOpenProfile) onOpenProfile();
           }}
           style={{
             display: 'flex',

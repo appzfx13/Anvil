@@ -18,10 +18,15 @@ def serialize_user(user):
     if not user.client_secret:
         user.client_secret = User.generate_new_client_secret()
         user.save(update_fields=['client_secret'])
+    names = (user.full_name or '').strip().split(' ', 1)
+    first_name = names[0] if len(names) > 0 else ''
+    last_name = names[1] if len(names) > 1 else ''
     return {
         'id': user.id,
         'email': user.email,
         'full_name': user.full_name,
+        'first_name': first_name,
+        'last_name': last_name,
         'dhan_client_id': user.dhan_client_id,
         'client_secret': user.client_secret,
         'access_token': user.access_token,
@@ -190,15 +195,17 @@ class CurrentUserView(APIView):
     """
     GET /api/auth/me
     Returns current authenticated user details and active sandbox credentials.
+
+    PUT /api/auth/me
+    Updates user profile (First Name, Last Name). Email cannot be modified.
     """
-    def get(self, request):
+    def _get_user(self, request):
         auth_header = request.headers.get('Authorization', '')
         client_id_header = request.headers.get('client-id', '')
 
         user = None
         if auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
-            # Check if token is user access_token directly
             user = User.objects.filter(access_token=token).first()
             if not user:
                 try:
@@ -209,7 +216,10 @@ class CurrentUserView(APIView):
 
         if not user and client_id_header:
             user = User.objects.filter(dhan_client_id=client_id_header).first()
+        return user
 
+    def get(self, request):
+        user = self._get_user(request)
         if not user:
             return Response({'user': None, 'account': None}, status=status.HTTP_200_OK)
 
@@ -224,6 +234,38 @@ class CurrentUserView(APIView):
                 'available_balance': available,
                 'sod_limit': sod,
                 'utilized_margin': utilized,
+            }
+        }, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        user = self._get_user(request)
+        if not user:
+            return Response({'error': 'Authentication required to update profile'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        full_name = request.data.get('full_name', '').strip()
+
+        if first_name or last_name:
+            user.full_name = f"{first_name} {last_name}".strip()
+        elif full_name:
+            user.full_name = full_name
+
+        user.save(update_fields=['full_name'])
+
+        account = VirtualAccount.objects.filter(user=user).first()
+        if account:
+            account.account_name = user.full_name or f"Sandbox Account {user.dhan_client_id}"
+            account.save(update_fields=['account_name'])
+
+        return Response({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'user': serialize_user(user),
+            'account': {
+                'available_balance': float(account.availabel_balance) if account else 0.0,
+                'sod_limit': float(account.sod_limit) if account else 0.0,
+                'utilized_margin': float(account.utilized_margin) if account else 0.0,
             }
         }, status=status.HTTP_200_OK)
 

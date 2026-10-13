@@ -178,6 +178,7 @@ export default function Navbar({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div
                 id="user-profile-summary"
+                onClick={() => setCurrentView && setCurrentView('profile')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -186,7 +187,9 @@ export default function Navbar({
                   border: '1px solid rgba(99, 102, 241, 0.25)',
                   borderRadius: '10px',
                   padding: '6px 12px',
+                  cursor: 'pointer',
                 }}
+                title="View & Edit Profile"
               >
                 <ShieldCheck size={16} color="var(--accent-primary)" />
                 <div style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
