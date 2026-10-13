@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
         demo_users_data = [
             {
-                'email': 'admin@anvil.local',
+                'email': 'satheeshappz@gmail.com',
                 'full_name': 'Super Admin',
                 'dhan_client_id': '1000000001',
                 'client_secret': 'sec_anvil_admin_master_secret_01',

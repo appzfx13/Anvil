@@ -6,30 +6,30 @@ import {
   Layers,
   PlusCircle,
   RotateCcw,
-  Copy,
-  Check,
   RefreshCw,
-  AlertTriangle,
-  Play,
-  Key,
-  Shield,
   Clock,
-  XCircle,
   Radio,
   Zap,
   Sliders,
-  ChevronRight,
-  ExternalLink,
-  ChevronDown,
   Activity,
-  Maximize2
+  Plus,
+  PieChart,
+  Receipt,
+  ShieldAlert,
+  ShieldCheck,
+  Check,
+  AlertTriangle,
+  XCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  BarChart2
 } from 'lucide-react';
 import { api } from '../services/api';
 import Modal from '../components/Modal';
 import OrderModal from '../components/OrderModal';
-import OptionChainModal from '../components/OptionChainModal';
-import DataFeedModal from '../components/DataFeedModal';
-import TokenSuccessModal from '../components/TokenSuccessModal';
+import QuickChartTradeModal from '../components/QuickChartTradeModal';
+import { SUPPORTED_INDICES } from '../services/constants';
+import { formatTradingSymbol } from '../services/formatters';
 
 export default function Dashboard({
   user,
@@ -41,13 +41,17 @@ export default function Dashboard({
   onOpenMarmotConfig,
   onOpenDataFeed,
 }) {
+  // Navigation & Desk tabs: positions | orders | trades
+  const [activeDeskTab, setActiveDeskTab] = useState(initialTab === 'optionchain' ? 'positions' : initialTab || 'positions');
   const [positionsFilter, setPositionsFilter] = useState('open'); // open | closed | all
+
+  // Telemetry data
   const [positions, setPositions] = useState([]);
   const [orders, setOrders] = useState([]);
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Live Clock
+  // Live IST Clock
   const [currentTime, setCurrentTime] = useState('');
 
   // Kill Switch state
@@ -55,22 +59,13 @@ export default function Dashboard({
   const [isKillSwitchModalOpen, setIsKillSwitchModalOpen] = useState(false);
   const [killSwitchLoading, setKillSwitchLoading] = useState(false);
 
-  // Inlined Option Chain State
-  const [chainIndex, setChainIndex] = useState('NIFTY50');
-  const [chainData, setChainData] = useState(null);
-  const [chainLoading, setChainLoading] = useState(false);
-
   // Modals state
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-  const [isOptionChainModalOpen, setIsOptionChainModalOpen] = useState(false);
-  const [isAdjustFundsOpen, setIsAdjustFundsOpen] = useState(false);
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [selectedChartSymbol, setSelectedChartSymbol] = useState('NIFTY 50');
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('100000');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
-  const [isCancelOrderConfirmOpen, setIsCancelOrderConfirmOpen] = useState(false);
-  const [selectedOrderToCancel, setSelectedOrderToCancel] = useState(null);
-  const [isDataFeedModalOpen, setIsDataFeedModalOpen] = useState(false);
-  const [isTokenSuccessModalOpen, setIsTokenSuccessModalOpen] = useState(false);
-  const [siteConfig, setSiteConfig] = useState(null);
-  const [hasFeedToken, setHasFeedToken] = useState(false);
 
   // Selected contract state for OrderModal
   const [orderModalParams, setOrderModalParams] = useState({
@@ -79,9 +74,6 @@ export default function Dashboard({
     strike: null,
     side: 'BUY',
   });
-
-  const [fundAdjustmentAmount, setFundAdjustmentAmount] = useState('100000');
-  const [copiedKey, setCopiedKey] = useState('');
 
   // Update Clock
   useEffect(() => {
@@ -94,41 +86,7 @@ export default function Dashboard({
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch Option Chain
-  const fetchOptionChain = async (idxKey) => {
-    setChainLoading(true);
-    try {
-      const res = await api.dhan.getOptionChain(idxKey);
-      if (res) {
-        setChainData(res);
-      }
-    } catch (err) {
-      console.error('Failed to load inlined option chain:', err);
-    } finally {
-      setChainLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOptionChain(chainIndex);
-    const chainInterval = setInterval(() => {
-      fetchOptionChain(chainIndex);
-    }, 4000);
-    return () => clearInterval(chainInterval);
-  }, [chainIndex]);
-
-  // Check Site Configuration Table for Fyers Data Feed Token
-  const checkFeedConfig = async () => {
-    try {
-      const cfg = await api.fyers.getConfig();
-      if (cfg) {
-        setSiteConfig(cfg);
-        setHasFeedToken(cfg.has_token);
-      }
-    } catch (e) {}
-  };
-
-  // Fetch telemetry data
+  // Fetch telemetry data from wire
   const fetchData = async () => {
     try {
       const [posData, ordData, trdData, ksData] = await Promise.all([
@@ -137,9 +95,9 @@ export default function Dashboard({
         api.dhan.getTrades().catch(() => []),
         api.dhan.getKillSwitch().catch(() => ({ killSwitchActive: false })),
       ]);
-      setPositions(posData);
-      setOrders(ordData);
-      setTrades(trdData);
+      setPositions(posData || []);
+      setOrders(ordData || []);
+      setTrades(trdData || []);
       if (ksData && typeof ksData.killSwitchActive === 'boolean') {
         setKillSwitchActive(ksData.killSwitchActive);
       }
@@ -149,40 +107,80 @@ export default function Dashboard({
   };
 
   useEffect(() => {
-    checkFeedConfig();
     fetchData();
     const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  // Compute Net P&L metrics
+  // Derived Performance & Brokerage Metrics
   const netRealized = positions.reduce((acc, p) => acc + (p.realizedProfit || 0), 0);
   const netUnrealized = positions.reduce((acc, p) => acc + (p.unrealizedProfit || 0), 0);
   const totalPnl = netRealized + netUnrealized;
+
   const pendingCount = orders.filter((o) => o.orderStatus === 'PENDING').length;
   const tradedCount = orders.filter((o) => o.orderStatus === 'TRADED').length;
+  const rejectedCount = orders.filter((o) => o.orderStatus === 'REJECTED' || o.orderStatus === 'CANCELLED').length;
 
+  // Estimated Brokerage (Flat ₹20 per executed order + ~₹4.50 taxes/STT)
+  const estimatedBrokerage = tradedCount * 20;
+  const estimatedTaxes = tradedCount > 0 ? Math.round(tradedCount * 4.5 * 100) / 100 : 0;
+  const totalBrokerageCharges = estimatedBrokerage + estimatedTaxes;
+
+  // Margins
+  const availableBal = Number(account?.available_balance || 500000);
+  const utilizedMargin = Number(account?.utilized_margin || 0);
+  const totalCapital = Math.max(availableBal + utilizedMargin, 500000);
+  const marginUtilizedPct = Math.min(100, Math.round((utilizedMargin / totalCapital) * 100));
+
+  // Filtered Positions
   const filteredPositions = positions.filter((p) => {
     if (positionsFilter === 'open') return p.netQty !== 0;
     if (positionsFilter === 'closed') return p.netQty === 0;
     return true;
   });
 
+  // Client Details
+  const clientId = user?.dhan_client_id || localStorage.getItem('anvil_client_id') || '1000000001';
+
   // Handle Order Placement
   const handlePlaceOrder = async (orderPayload) => {
     if (killSwitchActive) {
-      addToast('error', 'Trading is locked: Kill Switch is active on your account.');
+      addToast('error', 'Trading is locked: Emergency Kill Switch is active on your account.');
       return;
     }
     try {
       const res = await api.dhan.placeOrder(orderPayload);
       setIsOrderModalOpen(false);
-      addToast('success', `Order ${res.orderId} executed [${res.orderStatus}]`);
+      addToast('success', `Order placed: #${res.orderId} [${res.orderStatus}]`);
       fetchData();
       if (onRefreshAccount) onRefreshAccount();
     } catch (err) {
       addToast('error', err.message || 'Order execution failed.');
     }
+  };
+
+  // Handle Cancel Order
+  const handleCancelOrder = async (orderId) => {
+    try {
+      await api.dhan.cancelOrder(orderId);
+      addToast('success', `Order #${orderId} cancelled.`);
+      fetchData();
+      if (onRefreshAccount) onRefreshAccount();
+    } catch (err) {
+      addToast('error', err.message || 'Failed to cancel order.');
+    }
+  };
+
+  // Handle Square Off position
+  const handleSquareOffPosition = (pos) => {
+    const oppSide = pos.netQty > 0 ? 'SELL' : 'BUY';
+    setOrderModalParams({
+      index: pos.tradingSymbol.startsWith('BANK') ? 'BANKNIFTY' : 'NIFTY50',
+      symbol: pos.tradingSymbol,
+      strike: null,
+      side: oppSide,
+    });
+    setIsOrderModalOpen(true);
   };
 
   // Handle Kill Switch Activation / Deactivation
@@ -208,12 +206,33 @@ export default function Dashboard({
     }
   };
 
+  // Handle Deposit
+  const handleDepositConfirm = async () => {
+    const amt = parseFloat(depositAmount);
+    if (!amt || isNaN(amt) || amt <= 0) {
+      addToast('error', 'Enter a valid margin amount.');
+      return;
+    }
+    try {
+      await api.account.adjustFunds(amt, 'Virtual Margin Deposit');
+      addToast('success', `Deposited ₹${amt.toLocaleString('en-IN')} to virtual ledger.`);
+      setIsDepositModalOpen(false);
+      fetchData();
+      if (onRefreshAccount) onRefreshAccount();
+    } catch (err) {
+      addToast('error', err.message || 'Deposit failed.');
+    }
+  };
+
   // Handle Reset Ledger
   const handleResetLedger = async () => {
     try {
       await api.account.resetLedger();
-      addToast('success', 'Sandbox session reset to initial SOD limit (₹5,00,000).');
+      addToast('success', 'Sandbox session, orders, trades, and positions completely reset to SOD baseline.');
       setIsResetConfirmOpen(false);
+      setPositions([]);
+      setOrders([]);
+      setTrades([]);
       fetchData();
       if (onRefreshAccount) onRefreshAccount();
     } catch (err) {
@@ -221,937 +240,1055 @@ export default function Dashboard({
     }
   };
 
-  // Square off position helper
-  const handleSquareOffPosition = (pos) => {
-    const oppSide = pos.netQty > 0 ? 'SELL' : 'BUY';
-    setOrderModalParams({
-      index: pos.tradingSymbol.startsWith('BANK') ? 'BANKNIFTY' : 'NIFTY50',
-      symbol: pos.tradingSymbol,
-      strike: null,
-      side: oppSide,
-    });
-    setIsOrderModalOpen(true);
-  };
 
-  const clientId = user?.dhan_client_id || localStorage.getItem('anvil_client_id') || '1000000001';
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8500';
-
-  // Nifty Spot Data
-  const niftySpot = ticks['NIFTY50']?.ltp || 22504.65;
-  const niftyCh = ticks['NIFTY50']?.ch || 141.20;
-  const niftyChp = ticks['NIFTY50']?.chp || 0.62;
+  // Live Ticks Spot References
+  const niftyTick = ticks['NIFTY50'] || { ltp: 22504.65, ch: 141.20, chp: 0.62 };
+  const bankTick = ticks['BANKNIFTY'] || { ltp: 48250.80, ch: 320.10, chp: 0.67 };
+  const finTick = ticks['FINNIFTY'] || { ltp: 21680.40, ch: 95.50, chp: 0.44 };
+  const sensexTick = ticks['SENSEX'] || { ltp: 74119.30, ch: 450.20, chp: 0.61 };
 
   return (
-    <div id="sandbox-terminal-page" style={{ padding: '24px 32px', color: '#f8fafc' }}>
-      {/* 1. Header Row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+    <div id="clean-broker-dashboard" style={{ padding: '24px 32px', color: '#f8fafc', maxWidth: '1600px', margin: '0 auto' }}>
+      
+      {/* 1. Broker Top Header & Quick Action Bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', margin: 0 }}>
-              Sandbox Terminal
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', margin: 0 }}>
+              Market Desk
             </h1>
-            <span className="pill-badge badge-cyan">● SANDBOX TERMINAL</span>
-            <span className="pill-badge badge-emerald">LIVE SIMULATION (FYERS FEED)</span>
-            <span className="pill-badge badge-cyan">PAPER TRADING • ZERO RISK</span>
-            <span className="pill-badge badge-purple">1S BACKUP SCHEDULER: ARMED</span>
+            <span className="pill-badge badge-emerald" style={{ fontSize: '0.66rem', fontWeight: 700 }}>
+              ● LIVE SIMULATION
+            </span>
+            <span className="pill-badge badge-cyan" style={{ fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
+              CLIENT: {clientId}
+            </span>
           </div>
-          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
-            Risk-free live market strategy simulation powered by real-time Fyers tick data and virtual ledger execution.
+          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+            Real-time paper trading engine with institutional execution telemetry & Dhan v2 wire compatibility.
           </p>
         </div>
 
-        {/* Top Right Controls */}
+        {/* Header Right Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div className="pill-badge badge-emerald" style={{ padding: '6px 12px', fontSize: '0.74rem' }}>
-            ● Trade Eligible
-          </div>
-
-          <button
-            id="header-configure-anvil-btn"
-            onClick={onOpenMarmotConfig}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              color: '#fbbf24',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            <Sliders size={14} /> Configure ANVIL
-          </button>
-
-          <button
-            id="header-clear-session-btn"
-            onClick={() => setIsResetConfirmOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(244, 63, 94, 0.15)',
-              border: '1px solid rgba(244, 63, 94, 0.4)',
-              color: '#f43f5e',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Clear Session
-          </button>
-
+          {/* Live Clock Badge */}
           <div
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '6px',
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '0.78rem',
               color: '#94a3b8',
+              fontFamily: 'var(--font-mono)',
+            }}
+          >
+            <Clock size={14} color="#10b981" />
+            <span style={{ color: '#ffffff', fontWeight: 700 }}>{currentTime || '09:15:00'} IST</span>
+            <span style={{ fontSize: '0.66rem', color: '#10b981' }}>• NSE/BSE LIVE</span>
+          </div>
+
+          {/* Quick Trade Action */}
+          <button
+            id="broker-quick-place-order-btn"
+            onClick={() => {
+              setOrderModalParams({ index: 'NIFTY50', symbol: '', strike: null, side: 'BUY' });
+              setIsOrderModalOpen(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              color: '#ffffff',
+              borderRadius: '8px',
+              padding: '7px 14px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+            }}
+          >
+            <PlusCircle size={15} /> Place Trade
+          </button>
+
+          {/* Quick Chart Modal Trigger (Right corner) */}
+          <button
+            id="broker-quick-chart-modal-btn"
+            onClick={() => {
+              setSelectedChartSymbol('NIFTY 50');
+              setIsChartModalOpen(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(6, 182, 212, 0.15)',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
+              color: '#06b6d4',
+              borderRadius: '8px',
+              padding: '7px 13px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            <Activity size={15} /> Chart & Trade
+          </button>
+
+          {/* Add Margin */}
+          <button
+            id="broker-add-margin-btn"
+            onClick={() => setIsDepositModalOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#ffffff',
+              borderRadius: '8px',
+              padding: '7px 13px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={14} /> Add Margin
+          </button>
+
+          {/* Emergency Kill Switch */}
+          <button
+            id="broker-kill-switch-btn"
+            onClick={() => setIsKillSwitchModalOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: killSwitchActive ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+              border: `1px solid ${killSwitchActive ? 'rgba(239, 68, 68, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
+              color: killSwitchActive ? '#ef4444' : '#94a3b8',
               borderRadius: '8px',
               padding: '7px 12px',
               fontSize: '0.8rem',
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            Deployments <ChevronRight size={14} />
-          </div>
+            {killSwitchActive ? <ShieldAlert size={15} color="#ef4444" /> : <ShieldCheck size={15} color="#94a3b8" />}
+            <span>{killSwitchActive ? 'Kill Switch Active' : 'Kill Switch'}</span>
+          </button>
+
+          {/* Reset Session & Ledger */}
+          <button
+            id="broker-reset-ledger-btn"
+            onClick={() => setIsResetConfirmOpen(true)}
+            title="Reset sandbox ledger back to initial SOD limit (₹5,00,000) and square off all open positions"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#f87171',
+              borderRadius: '8px',
+              padding: '7px 13px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <RotateCcw size={14} />
+            <span>Reset Ledger</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. Clock & Telemetry Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '14px', marginBottom: '18px' }}>
-        {/* Clock Card */}
-        <div className="glass-panel" style={{ padding: '16px 18px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Clock size={16} color="#10b981" />
-              </div>
-              <span style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#10b981' }}>
-                {currentTime || '11:07:15'} <span style={{ fontSize: '0.85rem' }}>IST</span>
-              </span>
-            </div>
-            <span className="pill-badge badge-amber" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>1s</span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '8px' }}>
-            13 Oct 2026 • NSE/BSE Exchange Zone
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem' }}>
-            <span className="pill-badge badge-emerald" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>Market Open</span>
-            <span style={{ color: '#94a3b8' }}>Square-off: 15:15 IST</span>
-          </div>
-        </div>
 
-        {/* NIFTY 50 Spot Card */}
-        <div className="glass-panel" style={{ padding: '16px 18px', background: 'rgba(11, 14, 21, 0.95)' }}>
+      {/* 2. Real-Time Index Market Watch Strip */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+      >
+        {/* NIFTY 50 */}
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.04em' }}>NIFTY 50 - NSE</span>
-            <span className="pill-badge badge-emerald" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>LIVE TICK</span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>NIFTY 50</span>
+            <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>NSE SPOT</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-              ₹{niftySpot.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+              ₹{Number(niftyTick.ltp || 22504.65).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
-            <span style={{ fontSize: '0.76rem', color: '#10b981', fontWeight: 600 }}>
-              +{niftyChp.toFixed(2)}%
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: niftyTick.ch >= 0 ? '#10b981' : '#f43f5e' }}>
+              {niftyTick.ch >= 0 ? '+' : ''}{Number(niftyTick.ch || 0).toFixed(2)} ({niftyTick.chp >= 0 ? '+' : ''}{Number(niftyTick.chp || 0).toFixed(2)}%)
             </span>
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-            Range: H: 22,760.45 • L: 22,481.10
+        </div>
+
+        {/* BANK NIFTY */}
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>BANK NIFTY</span>
+            <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>NSE SPOT</span>
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '2px' }}>
-            + {niftyCh.toFixed(2)} (pts)
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+              ₹{Number(bankTick.ltp || 48250.80).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: bankTick.ch >= 0 ? '#10b981' : '#f43f5e' }}>
+              {bankTick.ch >= 0 ? '+' : ''}{Number(bankTick.ch || 0).toFixed(2)} ({bankTick.chp >= 0 ? '+' : ''}{Number(bankTick.chp || 0).toFixed(2)}%)
+            </span>
           </div>
         </div>
 
-        {/* Macro AI Regime Card */}
-        <div className="glass-panel" style={{ padding: '16px 18px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.04em' }}>MACRO AI REGIME</span>
-            <span className="pill-badge badge-amber" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>gemini-2.5-flash-lite</span>
+        {/* FIN NIFTY */}
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>FIN NIFTY</span>
+            <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>NSE SPOT</span>
           </div>
-          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px' }}>
-            RANGEBOUND CONSOLIDATION
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: 1.3, marginBottom: '6px' }}>
-            Nifty is oscillating within a tight 24,900-25,200 band as IV remains compressed, suggesting a lack of dire...
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 600 }}>
-            Conviction: +0.72
-          </div>
-        </div>
-
-        {/* Institutional Flow Bias Card */}
-        <div className="glass-panel" style={{ padding: '16px 18px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.04em' }}>INSTITUTIONAL FLOW BIAS</span>
-            <span className="pill-badge badge-emerald" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>FII / DII Flow</span>
-          </div>
-          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px' }}>
-            NET INSTITUTIONAL DISTRIBUTION
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: 1.3, marginBottom: '6px' }}>
-            FIIs continue to trim index long exposure while DIIs provide selective support, leading to a net selling bias...
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: 600 }}>
-            Bias Score: -0.42
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+              ₹{Number(finTick.ltp || 21680.40).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: finTick.ch >= 0 ? '#10b981' : '#f43f5e' }}>
+              {finTick.ch >= 0 ? '+' : ''}{Number(finTick.ch || 0).toFixed(2)} ({finTick.chp >= 0 ? '+' : ''}{Number(finTick.chp || 0).toFixed(2)}%)
+            </span>
           </div>
         </div>
 
-        {/* Global & Event Risk Card */}
-        <div className="glass-panel" style={{ padding: '16px 18px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.04em' }}>GLOBAL & EVENT RISK</span>
-            <span className="pill-badge badge-rose" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>ELEVATED RISK</span>
+        {/* SENSEX */}
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>BSE SENSEX</span>
+            <span className="pill-badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>BSE SPOT</span>
           </div>
-          <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px' }}>
-            NEUTRAL GLOBAL CUES
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b', lineHeight: 1.3, marginBottom: '6px' }}>
-            Mixed signals from US bond yields and stagnant Asian markets provide no clear directional catalyst for th...
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#fbbf24', fontWeight: 600 }}>
-            Score: +0.06 • Guard Active
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+              ₹{Number(sensexTick.ltp || 74119.30).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
+            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: sensexTick.ch >= 0 ? '#10b981' : '#f43f5e' }}>
+              {sensexTick.ch >= 0 ? '+' : ''}{Number(sensexTick.ch || 0).toFixed(2)} ({sensexTick.chp >= 0 ? '+' : ''}{Number(sensexTick.chp || 0).toFixed(2)}%)
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Live Feed Sandbox Engine Gateway Status Bar */}
-      <div className="gateway-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Radio size={18} color="#10b981" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 700, color: '#ffffff', fontSize: '0.92rem' }}>Live Feed Sandbox Engine (ANVIL)</span>
-              <span className="pill-badge badge-emerald" style={{ fontSize: '0.64rem' }}>LIVE FYERS STREAM</span>
-              <span className="pill-badge badge-cyan" style={{ fontSize: '0.64rem' }}>ANVIL GATEWAY (1, ISOLATED)</span>
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-              Gateway: <span style={{ color: '#94a3b8' }}>{baseUrl}</span> • Client ID: <span style={{ color: '#ffffff' }}>{clientId}</span> • Balance: <span style={{ color: '#10b981' }}>₹{Number(account?.available_balance || 500000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span> • Engine Latency: <span style={{ color: '#38bdf8' }}>0ms</span>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button
-            onClick={onOpenMarmotConfig}
-            style={{
-              background: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              color: '#10b981',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Configure ANVIL
-          </button>
-
-          <button
-            onClick={() => {
-              fetchData();
-              if (onRefreshAccount) onRefreshAccount();
-              addToast('success', 'Virtual balance synced with Dhan wire ledger.');
-            }}
-            style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#e2e8f0',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Sync Balance
-          </button>
-
-          <span className="pill-badge badge-cyan" style={{ fontSize: '0.68rem', padding: '4px 8px' }}>
-            Zero Real-Money Risk
-          </span>
-        </div>
-      </div>
-
-      {/* 4. Primary Telemetry Cards (4-Grid) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '14px' }}>
-        {/* Card 1: ANVIL Sandbox Online */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+      {/* 3. Primary KPI Performance Metric Cards (4 Clean Columns) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '14px',
+          marginBottom: '22px',
+        }}
+      >
+        {/* KPI 1: Realised Booked P&L */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #10b981' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700, letterSpacing: '0.04em' }}>
-              ● ANVIL Sandbox Online
+            <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+              REALISED P&L (BOOKED)
             </span>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
-              ANVIL • ID: {clientId}
+            <span
+              className={netRealized >= 0 ? 'pill-badge badge-emerald' : 'pill-badge badge-rose'}
+              style={{ fontSize: '0.62rem', padding: '1px 6px' }}
+            >
+              {netRealized >= 0 ? 'PROFIT' : 'LOSS'}
             </span>
-          </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', marginBottom: '8px' }}>
-            Realtime Stream • {positions.length} Open
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.74rem' }}>
-            <span style={{ color: '#38bdf8', cursor: 'pointer' }} onClick={() => addToast('info', 'Active account: ' + clientId)}>
-              Accounts →
-            </span>
-            <span style={{ color: '#94a3b8', cursor: 'pointer' }} onClick={onOpenMarmotConfig}>
-              ⚙ Configure
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Live Net P&L */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
-              Live Net P&L
-            </span>
-            <span className="pill-badge badge-emerald" style={{ fontSize: '0.64rem', padding: '1px 6px' }}>
-              Live Synced
-            </span>
-          </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>
-            Intraday Realtime Return
           </div>
           <div
             style={{
-              fontSize: '1.55rem',
+              fontSize: '1.75rem',
               fontWeight: 800,
-              color: totalPnl >= 0 ? '#10b981' : '#f43f5e',
               fontFamily: 'var(--font-mono)',
+              color: netRealized >= 0 ? '#10b981' : '#f43f5e',
               marginBottom: '6px',
+              letterSpacing: '-0.02em',
             }}
           >
-            {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {netRealized >= 0 ? '+' : ''}₹{netRealized.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
-            <span style={{ color: '#10b981' }}>✓ {positions.length} Active Pos</span>
-            <span>{orders.length} Orders</span>
+            <span>Settled trades: <strong style={{ color: '#ffffff' }}>{trades.length}</strong></span>
+            <span>Net status: <strong style={{ color: netRealized >= 0 ? '#10b981' : '#f43f5e' }}>{netRealized >= 0 ? 'Profitable' : 'Drawdown'}</strong></span>
           </div>
         </div>
 
-        {/* Card 3: Available Margin */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+        {/* KPI 2: Unrealised MTM Float */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #06b6d4' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
-              Available Margin
+            <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+              UNREALISED P&L (MTM FLOAT)
             </span>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8' }} />
+            <span className="pill-badge badge-cyan" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+              LIVE TICKING
+            </span>
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>
-            Power Fund: + Cash: ₹{Number(account?.available_balance || 500000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <div style={{ fontSize: '1.55rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)', marginBottom: '6px' }}>
-            ₹{Number(account?.available_balance || 500000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          <div
+            style={{
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)',
+              color: netUnrealized >= 0 ? '#10b981' : '#f43f5e',
+              marginBottom: '6px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {netUnrealized >= 0 ? '+' : ''}₹{netUnrealized.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
-            <span style={{ color: '#38bdf8' }}>✓ Armed & Synced</span>
-            <span>Trading Power</span>
+            <span>Open contracts: <strong style={{ color: '#ffffff' }}>{filteredPositions.filter(p => p.netQty !== 0).length}</strong></span>
+            <span>Total Day Net: <strong style={{ color: totalPnl >= 0 ? '#10b981' : '#f43f5e' }}>₹{totalPnl.toFixed(2)}</strong></span>
           </div>
         </div>
 
-        {/* Card 4: Account Guardian */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+        {/* KPI 3: Available Margin & Capital Ledger */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #38bdf8' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.72rem', color: '#f43f5e', fontWeight: 700, letterSpacing: '0.04em' }}>
-              ● Account Guardian
+            <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+              AVAILABLE CAPITAL LEDGER
             </span>
-            <span className="pill-badge badge-rose" style={{ fontSize: '0.64rem', padding: '1px 6px' }}>
-              2-Tier Active
+            <span className="pill-badge badge-purple" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+              BROKER SETTLED
             </span>
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '2px' }}>
-            Gate: Enabled
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: killSwitchActive ? '#f43f5e' : '#ffffff' }}>
-              {killSwitchActive ? 'Circuit Breaker Active' : 'Normal Arm'}
-            </span>
-            <button
-              onClick={() => setIsKillSwitchModalOpen(true)}
-              style={{
-                background: killSwitchActive ? '#10b981' : '#f43f5e',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {killSwitchActive ? 'Unlock' : '⚡ Kill'}
-            </button>
+          <div
+            style={{
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)',
+              color: '#ffffff',
+              marginBottom: '6px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            ₹{availableBal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
-            <span>Circuit Gate Protected</span>
-            <span style={{ color: '#10b981' }}>L1/L2 Active</span>
+            <span>Blocked Margin: <strong style={{ color: '#f43f5e' }}>-₹{utilizedMargin.toFixed(2)}</strong></span>
+            <span>SOD Capital: <strong style={{ color: '#94a3b8' }}>₹{Number(account?.sod_limit || 500000).toLocaleString('en-IN')}</strong></span>
+          </div>
+        </div>
+
+        {/* KPI 4: Estimated Brokerage & Taxes */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #fbbf24' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
+              ORDER BOOK & BROKERAGE
+            </span>
+            <span className="pill-badge badge-amber" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+              FLAT ₹20/ORDER
+            </span>
+          </div>
+          <div
+            style={{
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)',
+              color: '#fbbf24',
+              marginBottom: '6px',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {tradedCount} <span style={{ fontSize: '1rem', fontWeight: 600, color: '#ffffff' }}>Fills</span> / ₹{totalBrokerageCharges.toFixed(2)}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
+            <span>Brokerage: <strong style={{ color: '#ffffff' }}>₹{estimatedBrokerage.toFixed(2)}</strong></span>
+            <span>STT & Taxes: <strong style={{ color: '#ffffff' }}>₹{estimatedTaxes.toFixed(2)}</strong></span>
           </div>
         </div>
       </div>
 
-      {/* 5. Secondary Metrics (4-Grid) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '22px' }}>
-        {/* Realized P&L */}
-        <div className="glass-panel" style={{ padding: '14px 18px', background: 'rgba(11, 14, 21, 0.7)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '4px' }}>
-            <span style={{ fontWeight: 600 }}>Realized P&L</span>
-            <span className="pill-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', fontSize: '0.62rem' }}>0 Closed</span>
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Booked & Settled Performance</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: netRealized >= 0 ? '#10b981' : '#f43f5e', margin: '4px 0' }}>
-            {netRealized >= 0 ? '+' : ''}₹{netRealized.toFixed(2)}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-            <span>✓ Settled</span>
-            <span style={{ color: '#10b981' }}>Confirmed</span>
-          </div>
-        </div>
-
-        {/* Unrealized P&L */}
-        <div className="glass-panel" style={{ padding: '14px 18px', background: 'rgba(11, 14, 21, 0.7)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '4px' }}>
-            <span style={{ fontWeight: 600 }}>Unrealized P&L</span>
-            <span className="pill-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', fontSize: '0.62rem' }}>{positions.length} Open</span>
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Mark-to-Market Realtime Float</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: netUnrealized >= 0 ? '#10b981' : '#f43f5e', margin: '4px 0' }}>
-            {netUnrealized >= 0 ? '+' : ''}₹{netUnrealized.toFixed(2)}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-            <span>~ MTM Float</span>
-            <span style={{ color: '#38bdf8' }}>0 Running</span>
-          </div>
-        </div>
-
-        {/* Margin Utilized */}
-        <div className="glass-panel" style={{ padding: '14px 18px', background: 'rgba(11, 14, 21, 0.7)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '4px' }}>
-            <span style={{ fontWeight: 600 }}>Margin Utilized</span>
-            <span className="pill-badge badge-amber" style={{ fontSize: '0.62rem' }}>Active Exposure</span>
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Collateral ₹0.00</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#ffffff', margin: '4px 0' }}>
-            ₹{Number(account?.utilized_margin || 0).toFixed(2)}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-            <span>Capital in Use</span>
-            <span style={{ color: '#94a3b8' }}>Exposure Ratio: 0%</span>
-          </div>
-        </div>
-
-        {/* Day Orders */}
-        <div className="glass-panel" style={{ padding: '14px 18px', background: 'rgba(11, 14, 21, 0.7)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '4px' }}>
-            <span style={{ fontWeight: 600 }}>Day Orders</span>
-            <span className="pill-badge badge-cyan" style={{ fontSize: '0.62rem' }}>{orders.length} Fills</span>
-          </div>
-          <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Pending: {pendingCount}</div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#ffffff', margin: '4px 0' }}>
-            {orders.length} Orders
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-            <span>✓ Traded: {tradedCount}</span>
-            <span style={{ color: '#f43f5e' }}>Pending: {pendingCount}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Open & Running Positions Table (Screenshot 1 Bottom) */}
-      <div className="glass-panel-elevated" style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
-        {/* Table Header Bar */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: 'rgba(255, 255, 255, 0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TrendingUp size={15} color="#10b981" />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.94rem', color: '#ffffff' }}>Open & Running Positions</span>
-                <span className="pill-badge badge-emerald" style={{ fontSize: '0.64rem' }}>{positions.length} ACTIVE POSITIONS</span>
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                Real-time MTM telemetry, live contract prices, and instant risk exit controls
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>FILTER POSITIONS:</span>
-            <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              {['open', 'closed', 'all'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setPositionsFilter(tab)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    background: positionsFilter === tab ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                    color: positionsFilter === tab ? '#ffffff' : '#94a3b8',
-                    fontSize: '0.74rem',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            <button
-              id="open-manual-order-btn"
-              onClick={() => {
-                setOrderModalParams({ index: 'NIFTY50', symbol: '', strike: null, side: 'BUY' });
-                setIsOrderModalOpen(true);
-              }}
-              style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '6px 14px',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <PlusCircle size={14} /> Place Trade
-            </button>
-          </div>
-        </div>
-
-        {/* Positions Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table className="trading-table" style={{ width: '100%' }}>
-            <thead>
-              <tr>
-                <th>INSTRUMENT</th>
-                <th>SIDE</th>
-                <th>PRODUCT</th>
-                <th style={{ textAlign: 'right' }}>NET QTY</th>
-                <th style={{ textAlign: 'right' }}>BUY AVG</th>
-                <th style={{ textAlign: 'right' }}>SELL AVG</th>
-                <th style={{ textAlign: 'right' }}>REALIZED</th>
-                <th style={{ textAlign: 'right' }}>UNREALIZED MTM</th>
-                <th style={{ textAlign: 'right' }}>ACTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPositions.length === 0 ? (
-                <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748b', fontSize: '0.84rem' }}>
-                    No running positions currently active in sandbox ledger. Select a strike below to execute.
-                  </td>
-                </tr>
-              ) : (
-                filteredPositions.map((p, idx) => {
-                  const isLong = p.netQty > 0;
-                  const pnl = p.unrealizedProfit || 0;
-                  return (
-                    <tr key={idx} id={`pos-row-${p.securityId}`}>
-                      <td style={{ fontWeight: 700, color: '#ffffff' }}>{p.tradingSymbol}</td>
-                      <td>
-                        <span className={isLong ? 'pill-badge badge-emerald' : 'pill-badge badge-rose'}>
-                          {p.positionType}
-                        </span>
-                      </td>
-                      <td style={{ color: '#94a3b8' }}>{p.productType}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{p.netQty}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{p.buyAvg?.toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{p.sellAvg?.toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: p.realizedProfit >= 0 ? '#10b981' : '#f43f5e' }}>
-                        ₹{p.realizedProfit?.toFixed(2)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: pnl >= 0 ? '#10b981' : '#f43f5e' }}>
-                        {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {p.netQty !== 0 && (
-                          <button
-                            id={`squareoff-pos-${p.securityId}`}
-                            onClick={() => handleSquareOffPosition(p)}
-                            style={{
-                              background: 'rgba(244, 63, 94, 0.15)',
-                              border: '1px solid rgba(244, 63, 94, 0.4)',
-                              color: '#f43f5e',
-                              borderRadius: '4px',
-                              padding: '3px 8px',
-                              fontSize: '0.72rem',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Square Off
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Positions Summary Footer */}
-        <div style={{ padding: '10px 20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '20px', fontSize: '0.76rem', color: '#94a3b8', background: 'rgba(0, 0, 0, 0.2)' }}>
-          <span>Realized: <strong style={{ color: netRealized >= 0 ? '#10b981' : '#f43f5e' }}>₹{netRealized.toFixed(2)}</strong></span>
-          <span>Unrealized: <strong style={{ color: netUnrealized >= 0 ? '#10b981' : '#f43f5e' }}>₹{netUnrealized.toFixed(2)}</strong></span>
-          <span>Net P&L: <strong style={{ color: totalPnl >= 0 ? '#10b981' : '#f43f5e' }}>{totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}</strong></span>
-          <RefreshCw size={13} style={{ cursor: 'pointer' }} onClick={fetchData} />
-        </div>
-      </div>
-
-      {/* 7. Active Strategy Banner (Screenshot 2 Top) */}
+      {/* 4. Analytics & Interactive Visual Widgets (3 Columns: Equity Curve + Donut + Position Bar Graph) */}
       <div
-        className="glass-panel"
         style={{
-          padding: '12px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          borderLeft: '4px solid #10b981',
-          background: 'rgba(11, 14, 21, 0.95)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#ffffff' }}>
-            Live NIFTY ICT Liquidity Sweep + CHoCH Retest #BT-0024
-          </span>
-          <span className="pill-badge badge-cyan" style={{ fontSize: '0.62rem' }}>NIFTY</span>
-          <span className="pill-badge badge-emerald" style={{ fontSize: '0.62rem' }}>SANDBOX</span>
-          <span className="pill-badge" style={{ background: 'rgba(255, 255, 255, 0.08)', color: '#e2e8f0', fontSize: '0.62rem' }}>
-            MOMENTUM_STOCK_CROSSOVER
-          </span>
-          <span style={{ fontSize: '0.72rem', color: '#64748b', fontFamily: 'var(--font-mono)' }}>#1000000001</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="pill-badge badge-emerald" style={{ fontSize: '0.64rem' }}>ARMED (ON)</span>
-          <button style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#fbbf24', borderRadius: '4px', padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer' }}>
-            Pause
-          </button>
-          <button style={{ background: 'rgba(244, 63, 94, 0.15)', border: '1px solid rgba(244, 63, 94, 0.4)', color: '#f43f5e', borderRadius: '4px', padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer' }}>
-            Remove
-          </button>
-        </div>
-      </div>
-
-      {/* 8. Embedded Live Option Chain Matrix (Screenshot 2 Center) */}
-      <div className="glass-panel-elevated" style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
-        {/* Option Chain Header */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: 'rgba(255, 255, 255, 0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Layers size={15} color="#818cf8" />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.96rem', color: '#ffffff' }}>
-                  {chainIndex === 'NIFTY50' ? 'NIFTY 50' : chainIndex} Option Chain
-                </span>
-                <span className="pill-badge badge-emerald" style={{ fontSize: '0.64rem' }}>FYERS LIVE</span>
-                <span className="pill-badge badge-cyan" style={{ fontSize: '0.64rem' }}>1s TICK STREAM</span>
-                <span className="pill-badge badge-amber" style={{ fontSize: '0.64rem' }}>EXPIRY: 15 OCT 2026</span>
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                15 Strikes Active Window • Real-time ATM Postmap • 100% Live Exchange Contracts
-              </div>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>BACKUP INDEX:</span>
-            <select
-              value={chainIndex}
-              onChange={(e) => setChainIndex(e.target.value)}
-              style={{
-                background: 'rgba(0, 0, 0, 0.4)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#ffffff',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                outline: 'none',
-              }}
-            >
-              <option value="NIFTY50">Nifty 50</option>
-              <option value="BANKNIFTY">Bank Nifty</option>
-              <option value="FINNIFTY">Fin Nifty</option>
-            </select>
-
-            <button
-              onClick={() => fetchOptionChain(chainIndex)}
-              disabled={chainLoading}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                color: '#94a3b8',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                cursor: 'pointer',
-              }}
-            >
-              <RefreshCw size={13} className={chainLoading ? 'spin' : ''} />
-            </button>
-          </div>
-        </div>
-
-        {/* Spot Banner Strip */}
-        <div style={{ padding: '8px 20px', background: 'rgba(0, 0, 0, 0.35)', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', fontSize: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-            <span>SPOT - {chainIndex}: <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>₹{chainData?.spot_price?.toFixed(2) || niftySpot.toFixed(2)}</strong> <span style={{ color: '#10b981' }}>+140.70</span></span>
-            <span style={{ color: '#64748b' }}>•</span>
-            <span style={{ color: '#94a3b8' }}>DAY RANGE: H: 22,631.15  L: 22,481.10</span>
-            <span style={{ color: '#64748b' }}>•</span>
-            <span style={{ color: '#94a3b8' }}>PCR: <strong style={{ color: '#10b981' }}>1.2</strong></span>
-            <span style={{ color: '#64748b' }}>•</span>
-            <span style={{ color: '#94a3b8' }}>VIX: <strong style={{ color: '#fbbf24' }}>14.54</strong></span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="pill-badge" style={{ background: '#eab308', color: '#000', fontWeight: 800, fontSize: '0.68rem' }}>
-              ATM: {chainData?.atm_strike || 22500}
-            </span>
-          </div>
-        </div>
-
-        {/* Dual Call/Put Matrix Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table className="trading-table" style={{ width: '100%', fontSize: '0.78rem' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
-                <th colSpan="2" style={{ textAlign: 'center', color: '#10b981', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                  CALLS (CE) • BULLISH
-                </th>
-                <th style={{ textAlign: 'center', color: '#f8fafc', background: 'rgba(255, 255, 255, 0.03)' }}>
-                  STRIKE
-                </th>
-                <th colSpan="2" style={{ textAlign: 'center', color: '#f43f5e', borderLeft: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                  PUTS (PE) • BEARISH
-                </th>
-              </tr>
-              <tr style={{ fontSize: '0.7rem' }}>
-                <th style={{ width: '22%' }}>OI (CONTRACTS)</th>
-                <th style={{ width: '23%', textAlign: 'right', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>LTP & CHG</th>
-                <th style={{ width: '10%', textAlign: 'center', background: 'rgba(255, 255, 255, 0.03)' }}>STRIKE PRICE</th>
-                <th style={{ width: '23%', textAlign: 'left', borderLeft: '1px solid rgba(255, 255, 255, 0.08)' }}>LTP & CHG</th>
-                <th style={{ width: '22%', textAlign: 'right' }}>OI (CONTRACTS)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {chainData?.strikes?.slice(0, 15).map((row) => {
-                const isAtm = row.is_atm;
-                const call = row.call;
-                const put = row.put;
-                return (
-                  <tr
-                    key={row.strike_price}
-                    style={{
-                      background: isAtm ? 'rgba(234, 179, 8, 0.08)' : 'transparent',
-                      outline: isAtm ? '1px solid #eab308' : 'none',
-                    }}
-                  >
-                    {/* Call OI */}
-                    <td style={{ color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
-                      {call.oi ? call.oi.toLocaleString('en-IN') : '—'}
-                    </td>
-
-                    {/* Call LTP & Buy Button */}
-                    <td style={{ textAlign: 'right', borderRight: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                        <span style={{ fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
-                          ₹{call.ltp?.toFixed(2)}
-                        </span>
-                        <span style={{ fontSize: '0.68rem', color: call.ch >= 0 ? '#10b981' : '#f43f5e' }}>
-                          {call.ch >= 0 ? '+' : ''}{call.ch?.toFixed(1)}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setOrderModalParams({
-                              index: chainIndex,
-                              symbol: call.trading_symbol,
-                              strike: row.strike_price,
-                              side: 'BUY',
-                            });
-                            setIsOrderModalOpen(true);
-                          }}
-                          style={{
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            border: '1px solid rgba(16, 185, 129, 0.4)',
-                            color: '#10b981',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            fontSize: '0.66rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          BUY
-                        </button>
-                      </div>
-                    </td>
-
-                    {/* Strike Price */}
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        color: isAtm ? '#eab308' : '#ffffff',
-                        background: isAtm ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                        fontFamily: 'var(--font-mono)',
-                      }}
-                    >
-                      {row.strike_price} {isAtm && <span style={{ fontSize: '0.6rem', color: '#eab308' }}>ATM</span>}
-                    </td>
-
-                    {/* Put LTP & Buy Button */}
-                    <td style={{ textAlign: 'left', borderLeft: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>
-                        <button
-                          onClick={() => {
-                            setOrderModalParams({
-                              index: chainIndex,
-                              symbol: put.trading_symbol,
-                              strike: row.strike_price,
-                              side: 'BUY',
-                            });
-                            setIsOrderModalOpen(true);
-                          }}
-                          style={{
-                            background: 'rgba(244, 63, 94, 0.15)',
-                            border: '1px solid rgba(244, 63, 94, 0.4)',
-                            color: '#f43f5e',
-                            borderRadius: '4px',
-                            padding: '2px 6px',
-                            fontSize: '0.66rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          BUY
-                        </button>
-                        <span style={{ fontWeight: 700, color: '#f43f5e', fontFamily: 'var(--font-mono)' }}>
-                          ₹{put.ltp?.toFixed(2)}
-                        </span>
-                        <span style={{ fontSize: '0.68rem', color: put.ch >= 0 ? '#10b981' : '#f43f5e' }}>
-                          {put.ch >= 0 ? '+' : ''}{put.ch?.toFixed(1)}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Put OI */}
-                    <td style={{ textAlign: 'right', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
-                      {put.oi ? put.oi.toLocaleString('en-IN') : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 9. Charts Row (Screenshot 2 Bottom: Intraday Equity Curve + Distribution Graph) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        {/* Intraday Equity Curve */}
-        <div className="glass-panel" style={{ padding: '16px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        {/* Widget 1: Intraday Portfolio Equity Curve (Graph) */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Activity size={16} color="#10b981" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Intraday Equity Curve</span>
+              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#ffffff' }}>
+                Equity Curve Progression
+              </span>
             </div>
-            <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#10b981', fontSize: '0.95rem' }}>
-              +₹{totalPnl.toFixed(2)}
+            <span
+              style={{
+                fontWeight: 800,
+                fontFamily: 'var(--font-mono)',
+                color: totalPnl >= 0 ? '#10b981' : '#f43f5e',
+                fontSize: '0.92rem',
+              }}
+            >
+              {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
             </span>
           </div>
           <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '14px' }}>
-            Real-time P&L progression (09:15 - 15:30 IST) • {trades.length > 0 ? `${trades.length} fills recorded` : 'No Trades Today'}
+            Mark-to-market progression across trading hours • {trades.length} fills recorded
           </div>
 
-          {/* SVG Chart */}
+          {/* SVG Line Graph */}
           <div style={{ width: '100%', height: '140px', position: 'relative' }}>
             <svg width="100%" height="100%" viewBox="0 0 500 120" preserveAspectRatio="none">
               <defs>
-                <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="equityGradGreen" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
                   <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
                 </linearGradient>
+                <linearGradient id="equityGradRed" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
+                </linearGradient>
               </defs>
-              {/* Grid Lines */}
-              <line x1="0" y1="30" x2="500" y2="30" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+
+              <line x1="0" y1="30" x2="500" y2="30" stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
               <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.08)" />
-              <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
-              {/* Baseline Curve */}
-              <path
-                d="M 0 60 Q 150 55, 300 62 T 500 60"
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="2"
-              />
-              <path
-                d="M 0 60 Q 150 55, 300 62 T 500 60 L 500 120 L 0 120 Z"
-                fill="url(#equityGrad)"
-              />
+              <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+
+              {totalPnl >= 0 ? (
+                <>
+                  <path
+                    d="M 0 65 Q 120 62, 220 54 T 360 48 T 500 42"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2.5"
+                  />
+                  <path
+                    d="M 0 65 Q 120 62, 220 54 T 360 48 T 500 42 L 500 120 L 0 120 Z"
+                    fill="url(#equityGradGreen)"
+                  />
+                </>
+              ) : (
+                <>
+                  <path
+                    d="M 0 55 Q 120 58, 220 66 T 360 74 T 500 82"
+                    fill="none"
+                    stroke="#f43f5e"
+                    strokeWidth="2.5"
+                  />
+                  <path
+                    d="M 0 55 Q 120 58, 220 66 T 360 74 T 500 82 L 500 120 L 0 120 Z"
+                    fill="url(#equityGradRed)"
+                  />
+                </>
+              )}
             </svg>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#64748b', marginTop: '4px' }}>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
               <span>09:15</span>
-              <span>11:30</span>
-              <span>13:45</span>
+              <span>11:00</span>
+              <span>12:30</span>
+              <span>14:00</span>
               <span>15:30</span>
             </div>
           </div>
         </div>
 
-        {/* Position P&L Distribution Graph */}
-        <div className="glass-panel" style={{ padding: '16px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        {/* Widget 2: Margin & Capital Allocation (Donut Chart) */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <TrendingUp size={16} color="#38bdf8" />
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>Position P&L Distribution Graph</span>
-              <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem' }}>LIVE MTM</span>
+              <PieChart size={16} color="#06b6d4" />
+              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#ffffff' }}>
+                Margin & Capital Allocation
+              </span>
             </div>
-            <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#38bdf8', fontSize: '0.95rem' }}>
-              +₹0.00
+            <span className="pill-badge badge-cyan" style={{ fontSize: '0.62rem' }}>
+              EXPOSURE {marginUtilizedPct}%
             </span>
           </div>
           <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '14px' }}>
-            Contract-level Mark-to-Market & Realized P&L distribution across active and settled instruments
+            Free margin vs active derivative contract exposure
           </div>
 
-          <div style={{ width: '100%', height: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', gap: '20px', fontSize: '0.74rem', color: '#94a3b8' }}>
-              <span>ACTIVE CONTRACTS: <strong style={{ color: '#ffffff' }}>{positions.length} OPEN</strong></span>
-              <span>SETTLED: <strong style={{ color: '#ffffff' }}>0 CLOSED</strong></span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: '16px' }}>
+            <div style={{ width: '120px', height: '120px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="120" height="120" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="12" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="transparent"
+                  stroke="#10b981"
+                  strokeWidth="12"
+                  strokeDasharray={`${Math.max(1, (100 - marginUtilizedPct) * 2.387)} 238.7`}
+                  strokeDashoffset="0"
+                  strokeLinecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+                {utilizedMargin > 0 && (
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="transparent"
+                    stroke="#06b6d4"
+                    strokeWidth="12"
+                    strokeDasharray={`${Math.max(1, marginUtilizedPct * 2.387)} 238.7`}
+                    strokeDashoffset={`-${(100 - marginUtilizedPct) * 2.387}`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 50 50)"
+                  />
+                )}
+              </svg>
+
+              <div style={{ position: 'absolute', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.6rem', color: '#64748b', fontWeight: 600 }}>FREE</div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                  {100 - marginUtilizedPct}%
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '14px', marginTop: '10px', fontSize: '0.7rem' }}>
-              <span className="pill-badge badge-emerald" style={{ fontSize: '0.62rem' }}>Profit: Green</span>
-              <span className="pill-badge badge-rose" style={{ fontSize: '0.62rem' }}>Loss: Red</span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                <span style={{ color: '#94a3b8' }}>Free Cash:</span>
+                <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                  ₹{availableBal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </strong>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#06b6d4' }} />
+                <span style={{ color: '#94a3b8' }}>Blocked:</span>
+                <strong style={{ color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                  ₹{utilizedMargin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </strong>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.2)' }} />
+                <span style={{ color: '#64748b' }}>SOD Limit:</span>
+                <strong style={{ color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                  ₹{Number(account?.sod_limit || 500000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </strong>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Widget 3: Position P&L Breakdown (Bar Graph) */}
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BarChart2 size={16} color="#fbbf24" />
+              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#ffffff' }}>
+                Position P&L Distribution
+              </span>
+            </div>
+            <span className="pill-badge badge-amber" style={{ fontSize: '0.62rem' }}>
+              {positions.filter((p) => p.netQty !== 0).length} CONTRACTS
+            </span>
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '14px' }}>
+            Active contract-wise floating MTM distribution (Bar Graph)
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '120px', maxHeight: '140px', overflowY: 'auto' }}>
+            {positions.filter((p) => p.netQty !== 0).length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '110px', color: '#64748b', fontSize: '0.76rem', gap: '6px' }}>
+                <BarChart2 size={24} style={{ opacity: 0.3 }} />
+                <span>No active positions opened yet.</span>
+                <span style={{ fontSize: '0.68rem', color: '#06b6d4' }}>Place a trade to see contract P&L bars.</span>
+              </div>
+            ) : (
+              positions.filter((p) => p.netQty !== 0).map((pos) => {
+                const posPnl = (pos.realizedProfit || 0) + (pos.unrealizedProfit || 0);
+                const isProfit = posPnl >= 0;
+                const barWidth = Math.min(100, Math.max(12, Math.round((Math.abs(posPnl) / (Math.abs(totalPnl) || 1000)) * 100)));
+
+                return (
+                  <div key={pos.securityId} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                      <span style={{ fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                        {formatTradingSymbol(pos.tradingSymbol)} ({pos.netQty > 0 ? `+${pos.netQty}` : pos.netQty})
+                      </span>
+                      <span style={{ fontWeight: 800, fontFamily: 'var(--font-mono)', color: isProfit ? '#10b981' : '#f43f5e' }}>
+                        {isProfit ? '+' : ''}₹{posPnl.toFixed(2)}
+                      </span>
+                    </div>
+                    {/* Horizontal Bar Graphic */}
+                    <div style={{ width: '100%', height: '7px', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${barWidth}%`,
+                          height: '100%',
+                          background: isProfit ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #f43f5e, #e11d48)',
+                          borderRadius: '4px',
+                          boxShadow: isProfit ? '0 0 8px rgba(16, 185, 129, 0.4)' : '0 0 8px rgba(244, 63, 94, 0.4)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
-      {/* Modals */}
-      {/* 1. Order Placement Modal */}
+      {/* 5. Clean Tabbed Trading Desk */}
+      <div className="glass-panel-elevated" style={{ borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
+        {/* Desk Tab Header */}
+        <div
+          style={{
+            padding: '12px 20px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            background: 'rgba(255, 255, 255, 0.02)',
+          }}
+        >
+          {/* Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={() => setActiveDeskTab('positions')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                background: activeDeskTab === 'positions' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                color: activeDeskTab === 'positions' ? '#06b6d4' : '#94a3b8',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>Positions</span>
+              <span
+                style={{
+                  fontSize: '0.64rem',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  background: activeDeskTab === 'positions' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                  color: activeDeskTab === 'positions' ? '#06b6d4' : '#64748b',
+                }}
+              >
+                {positions.filter((p) => p.netQty !== 0).length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveDeskTab('orders')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                background: activeDeskTab === 'orders' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                color: activeDeskTab === 'orders' ? '#06b6d4' : '#94a3b8',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>Order Book</span>
+              <span
+                style={{
+                  fontSize: '0.64rem',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  background: activeDeskTab === 'orders' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                  color: activeDeskTab === 'orders' ? '#06b6d4' : '#64748b',
+                }}
+              >
+                {orders.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveDeskTab('trades')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                background: activeDeskTab === 'trades' ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
+                color: activeDeskTab === 'trades' ? '#06b6d4' : '#94a3b8',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>Trade Book</span>
+              <span
+                style={{
+                  fontSize: '0.64rem',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  background: activeDeskTab === 'trades' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                  color: activeDeskTab === 'trades' ? '#06b6d4' : '#64748b',
+                }}
+              >
+                {trades.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Right Corner Action: Chart & Quick Trade Trigger & Filters */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {activeDeskTab === 'positions' && (
+              <div style={{ display: 'flex', background: 'rgba(0, 0, 0, 0.4)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                {['open', 'closed', 'all'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setPositionsFilter(filter)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      background: positionsFilter === filter ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                      color: positionsFilter === filter ? '#ffffff' : '#94a3b8',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      textTransform: 'capitalize',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Right Corner Quick Chart & Trade Button */}
+            <button
+              id="desk-header-chart-trade-btn"
+              onClick={() => {
+                setSelectedChartSymbol('NIFTY 50');
+                setIsChartModalOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(6, 182, 212, 0.15)',
+                border: '1px solid rgba(6, 182, 212, 0.4)',
+                color: '#06b6d4',
+                borderRadius: '6px',
+                padding: '5px 12px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <Activity size={13} />
+              <span>Chart & Trade</span>
+            </button>
+
+            <button
+              onClick={fetchData}
+              title="Refresh Telemetry"
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#94a3b8',
+                borderRadius: '6px',
+                padding: '5px 8px',
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab 1: POSITIONS TABLE */}
+        {activeDeskTab === 'positions' && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="trading-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>INSTRUMENT</th>
+                  <th>TYPE</th>
+                  <th>PRODUCT</th>
+                  <th style={{ textAlign: 'right' }}>NET QTY</th>
+                  <th style={{ textAlign: 'right' }}>BUY AVG</th>
+                  <th style={{ textAlign: 'right' }}>SELL AVG</th>
+                  <th style={{ textAlign: 'right' }}>REALIZED</th>
+                  <th style={{ textAlign: 'right' }}>UNREALIZED MTM</th>
+                  <th style={{ textAlign: 'center' }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPositions.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '48px 20px', color: '#64748b' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Activity size={18} color="#64748b" />
+                        </div>
+                        <span style={{ fontSize: '0.86rem', color: '#94a3b8' }}>No running positions currently active.</span>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          Click <strong>+ Place Trade</strong> or use the <strong>Chart & Trade</strong> modal to open an order.
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPositions.map((p, idx) => {
+                    const isLong = p.netQty > 0;
+                    const pnl = p.unrealizedProfit || 0;
+                    return (
+                      <tr key={idx} id={`pos-row-${p.securityId}`}>
+                        <td style={{ fontWeight: 700, color: '#ffffff' }}>{formatTradingSymbol(p.tradingSymbol)}</td>
+                        <td>
+                          <span className={isLong ? 'pill-badge badge-emerald' : 'pill-badge badge-rose'}>
+                            {p.positionType || (isLong ? 'BUY' : 'SELL')}
+                          </span>
+                        </td>
+                        <td style={{ color: '#94a3b8' }}>{p.productType}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{p.netQty}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{p.buyAvg?.toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{p.sellAvg?.toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: p.realizedProfit >= 0 ? '#10b981' : '#f43f5e' }}>
+                          ₹{p.realizedProfit?.toFixed(2)}
+                        </td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: pnl >= 0 ? '#10b981' : '#f43f5e' }}>
+                          {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            {/* Chart modal trigger for this position */}
+                            <button
+                              onClick={() => {
+                                setSelectedChartSymbol(p.tradingSymbol);
+                                setIsChartModalOpen(true);
+                              }}
+                              title="Open real-time interactive chart"
+                              style={{
+                                background: 'rgba(6, 182, 212, 0.12)',
+                                border: '1px solid rgba(6, 182, 212, 0.35)',
+                                color: '#06b6d4',
+                                borderRadius: '4px',
+                                padding: '3px 7px',
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Activity size={11} /> Chart
+                            </button>
+
+                            {p.netQty !== 0 ? (
+                              <button
+                                id={`squareoff-pos-${p.securityId}`}
+                                onClick={() => handleSquareOffPosition(p)}
+                                style={{
+                                  background: 'rgba(244, 63, 94, 0.15)',
+                                  border: '1px solid rgba(244, 63, 94, 0.4)',
+                                  color: '#f43f5e',
+                                  borderRadius: '4px',
+                                  padding: '3px 8px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Square Off
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Closed</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+
+            {/* Positions Table Summary Footer */}
+            <div
+              style={{
+                padding: '12px 20px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: '24px',
+                fontSize: '0.78rem',
+                color: '#94a3b8',
+                background: 'rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              <span>Realized: <strong style={{ color: netRealized >= 0 ? '#10b981' : '#f43f5e' }}>₹{netRealized.toFixed(2)}</strong></span>
+              <span>Unrealized Float: <strong style={{ color: netUnrealized >= 0 ? '#10b981' : '#f43f5e' }}>₹{netUnrealized.toFixed(2)}</strong></span>
+              <span>Net Day P&L: <strong style={{ color: totalPnl >= 0 ? '#10b981' : '#f43f5e' }}>{totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}</strong></span>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: ORDER BOOK TABLE */}
+        {activeDeskTab === 'orders' && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="trading-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>TIME</th>
+                  <th>ORDER ID</th>
+                  <th>INSTRUMENT</th>
+                  <th>SIDE</th>
+                  <th>TYPE</th>
+                  <th style={{ textAlign: 'right' }}>QTY</th>
+                  <th style={{ textAlign: 'right' }}>PRICE</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                      No orders placed today.
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((ord, idx) => {
+                    const isTraded = ord.orderStatus === 'TRADED';
+                    const isPending = ord.orderStatus === 'PENDING';
+                    return (
+                      <tr key={idx}>
+                        <td style={{ color: '#64748b', fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
+                          {ord.createTime ? new Date(ord.createTime).toLocaleTimeString('en-IN') : '—'}
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: '#38bdf8' }}>#{ord.orderId}</td>
+                        <td style={{ fontWeight: 700, color: '#ffffff' }}>{formatTradingSymbol(ord.tradingSymbol)}</td>
+                        <td>
+                          <span className={ord.transactionType === 'BUY' ? 'pill-badge badge-emerald' : 'pill-badge badge-rose'}>
+                            {ord.transactionType}
+                          </span>
+                        </td>
+                        <td style={{ color: '#94a3b8' }}>{ord.orderType}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{ord.quantity}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{ord.price?.toFixed(2)}</td>
+                        <td>
+                          <span
+                            className={
+                              isTraded
+                                ? 'pill-badge badge-emerald'
+                                : isPending
+                                ? 'pill-badge badge-amber'
+                                : 'pill-badge badge-rose'
+                            }
+                          >
+                            {ord.orderStatus}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          {isPending && (
+                            <button
+                              onClick={() => handleCancelOrder(ord.orderId)}
+                              style={{
+                                background: 'rgba(244, 63, 94, 0.15)',
+                                border: '1px solid rgba(244, 63, 94, 0.4)',
+                                color: '#f43f5e',
+                                borderRadius: '4px',
+                                padding: '3px 8px',
+                                fontSize: '0.7rem',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Tab 3: TRADE BOOK TABLE */}
+        {activeDeskTab === 'trades' && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="trading-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>TIME</th>
+                  <th>TRADE ID</th>
+                  <th>ORDER ID</th>
+                  <th>INSTRUMENT</th>
+                  <th>SIDE</th>
+                  <th style={{ textAlign: 'right' }}>QTY</th>
+                  <th style={{ textAlign: 'right' }}>EXEC PRICE</th>
+                  <th style={{ textAlign: 'right' }}>TRADE VALUE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trades.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                      No trade executions recorded yet today.
+                    </td>
+                  </tr>
+                ) : (
+                  trades.map((trd, idx) => {
+                    const grossValue = (trd.tradedQuantity || 0) * (trd.tradedPrice || 0);
+                    return (
+                      <tr key={idx}>
+                        <td style={{ color: '#64748b', fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
+                          {trd.exchangeTime ? new Date(trd.exchangeTime).toLocaleTimeString('en-IN') : '—'}
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: '#38bdf8' }}>#{trd.tradeId}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: '#94a3b8' }}>#{trd.orderId}</td>
+                        <td style={{ fontWeight: 700, color: '#ffffff' }}>{formatTradingSymbol(trd.tradingSymbol)}</td>
+                        <td>
+                          <span className={trd.transactionType === 'BUY' ? 'pill-badge badge-emerald' : 'pill-badge badge-rose'}>
+                            {trd.transactionType}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{trd.tradedQuantity}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{trd.tradedPrice?.toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#10b981' }}>
+                          ₹{grossValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* MODALS */}
+      {/* 1. Quick Order Placement Modal */}
       <OrderModal
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
@@ -1160,34 +1297,81 @@ export default function Dashboard({
         defaultSymbol={orderModalParams.symbol}
         defaultStrike={orderModalParams.strike}
         defaultSide={orderModalParams.side}
-        availableBalance={account?.available_balance || 500000}
+        availableBalance={availableBal}
       />
 
-      {/* 2. Reset Ledger Modal */}
+      {/* 2. Interactive Real-Time Chart & Trade Modal */}
+      <QuickChartTradeModal
+        isOpen={isChartModalOpen}
+        onClose={() => setIsChartModalOpen(false)}
+        initialSymbol={selectedChartSymbol}
+        ticks={ticks}
+        account={account}
+        addToast={addToast}
+        onOrderSuccess={fetchData}
+      />
+
+      {/* 3. Margin Deposit Modal */}
+      <Modal
+        isOpen={isDepositModalOpen}
+        title="Add Virtual Trading Margin"
+        confirmText="Confirm Deposit"
+        onConfirm={handleDepositConfirm}
+        onCancel={() => setIsDepositModalOpen(false)}
+      >
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px' }}>
+            DEPOSIT AMOUNT (INR)
+          </label>
+          <input
+            id="deposit-margin-input"
+            type="number"
+            step="10000"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+            style={{
+              width: '100%',
+              background: '#06080c',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#ffffff',
+              padding: '12px',
+              borderRadius: '8px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '1.1rem',
+            }}
+          />
+          <p style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '8px', marginBottom: 0 }}>
+            Adds virtual funds directly to your sandbox ledger for risk-free algorithm simulation.
+          </p>
+        </div>
+      </Modal>
+
+      {/* 4. Emergency Kill Switch Modal */}
+      <Modal
+        isOpen={isKillSwitchModalOpen}
+        title={killSwitchActive ? 'Deactivate Kill Switch & Unlock Trading?' : '🚨 Activate Emergency Kill Switch?'}
+        message={
+          killSwitchActive
+            ? 'Deactivating the Kill Switch will restore order placement abilities for this terminal and MARMOT algorithms.'
+            : '⚠️ CRITICAL SAFETY BREAKER:\nActivating will immediately:\n1. Cancel ALL active/pending orders.\n2. Square off ALL open derivative positions at market LTP.\n3. Lock this trading account against incoming orders.\n\nProceed?'
+        }
+        confirmText={killSwitchActive ? (killSwitchLoading ? 'Unlocking...' : 'Unlock Trading') : (killSwitchLoading ? 'Activating...' : 'ACTIVATE KILL SWITCH')}
+        isDanger={!killSwitchActive}
+        onConfirm={handleToggleKillSwitch}
+        onCancel={() => setIsKillSwitchModalOpen(false)}
+      />
+
+      {/* 5. Reset Ledger Modal */}
       <Modal
         isOpen={isResetConfirmOpen}
         title="Reset Virtual Sandbox Ledger?"
-        message="This will reset your account balance back to the initial Start-of-Day limit (₹5,00,000) and clear all active positions and orders. Are you sure?"
+        message="This will reset your account balance back to the start-of-day ₹5,00,000 baseline and clear all positions and orders. Are you sure?"
         confirmText="Confirm Reset"
         isDanger={true}
         onConfirm={handleResetLedger}
         onCancel={() => setIsResetConfirmOpen(false)}
       />
 
-      {/* 3. Emergency Kill Switch Modal */}
-      <Modal
-        isOpen={isKillSwitchModalOpen}
-        title={killSwitchActive ? "Deactivate Kill Switch & Unlock Trading?" : "🚨 Activate Emergency Kill Switch?"}
-        message={
-          killSwitchActive
-            ? "Are you sure you want to deactivate the Kill Switch? This will unlock order placement for MARMOT and this terminal."
-            : "⚠️ CRITICAL WARNING: Activating the Kill Switch will immediately:\n1. Cancel ALL pending orders in your order book.\n2. Square off ALL open derivative positions at prevailing market price.\n3. Lock your account against any new incoming orders from MARMOT or this terminal.\n\nDo you want to proceed?"
-        }
-        confirmText={killSwitchActive ? (killSwitchLoading ? "Unlocking..." : "Unlock Trading") : (killSwitchLoading ? "Activating..." : "ACTIVATE KILL SWITCH")}
-        isDanger={!killSwitchActive}
-        onConfirm={handleToggleKillSwitch}
-        onCancel={() => setIsKillSwitchModalOpen(false)}
-      />
     </div>
   );
 }

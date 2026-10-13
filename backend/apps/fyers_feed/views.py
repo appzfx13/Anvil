@@ -151,3 +151,27 @@ class FyersTestFeedView(APIView):
                 "message": "Unable to fetch quotes with current credentials.",
                 "is_configured": fyers_service.is_fyers_configured()
             }, status=status.HTTP_400_BAD_REQUEST)
+
+class FyersHistoryView(APIView):
+    """
+    GET /api/fyers/history?symbol=NSE:NIFTY50-INDEX&resolution=5m&range_from=...&range_to=...
+    Retrieves historical candlestick OHLCV data for TradingView charts.
+    """
+    def get(self, request):
+        symbol = request.query_params.get('symbol', 'NSE:NIFTY50-INDEX').strip()
+        resolution = request.query_params.get('resolution', '5m').strip()
+        
+        range_from = request.query_params.get('range_from') or request.query_params.get('from')
+        range_to = request.query_params.get('range_to') or request.query_params.get('to')
+        
+        range_from_ts = int(range_from) if range_from and str(range_from).isdigit() else None
+        range_to_ts = int(range_to) if range_to and str(range_to).isdigit() else None
+
+        data = fyers_service.fetch_history(
+            symbol=symbol,
+            resolution=resolution,
+            range_from=range_from_ts,
+            range_to=range_to_ts
+        )
+        return Response(data, status=status.HTTP_200_OK)
+

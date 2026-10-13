@@ -6,26 +6,75 @@ import Toast from './components/Toast';
 import Modal from './components/Modal';
 import DataFeedModal from './components/DataFeedModal';
 import ProfileModal from './components/ProfileModal';
-import LiveDashboardView from './components/LiveDashboardView';
 import OrderModal from './components/OrderModal';
 import OptionChainModal from './components/OptionChainModal';
 import AdminTradersView from './components/AdminTradersView';
 import AdminTradesView from './components/AdminTradesView';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
-import ApiDocsPage from './pages/ApiDocsPage';
+import OptionChainPage from './pages/OptionChainPage';
+import ChartsPage from './pages/ChartsPage';
+import MarketFeedPage from './pages/MarketFeedPage';
+import MarmotConnectPage from './pages/MarmotConnectPage';
 import AuthPage from './pages/AuthPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import { api } from './services/api';
 import { SUPPORTED_INDICES } from './services/constants';
 
+// Path-based HTML5 History Routing Definitions
+const PATH_TO_VIEW = {
+  '/': 'dashboard',
+  '/dashboard': 'dashboard',
+  '/market': 'dashboard',
+  '/charts': 'charts',
+  '/chart': 'charts',
+  '/terminal': 'charts',
+  '/optionchain': 'optionchain',
+  '/option-chain': 'optionchain',
+  '/feed': 'feed',
+  '/market-feed': 'feed',
+  '/feed-config': 'feed',
+  '/marmot': 'marmot',
+  '/marmot-connect': 'marmot',
+  '/trades': 'trades',
+  '/orders': 'trades',
+  '/traders': 'traders',
+  '/auth': 'auth',
+  '/login': 'auth',
+  '/admin': 'admin_login',
+  '/admin/login': 'admin_login',
+};
+
+const VIEW_TO_PATH = {
+  dashboard: '/dashboard',
+  charts: '/charts',
+  optionchain: '/optionchain',
+  feed: '/feed',
+  marmot: '/marmot',
+  trades: '/trades',
+  traders: '/traders',
+  auth: '/auth',
+  admin_login: '/admin',
+  home: '/',
+};
+
+function getRouteFromLocation() {
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('view') === 'admin_login' || path === '/admin' || path === '/admin/login') {
+    return 'admin_login';
+  }
+  return PATH_TO_VIEW[path] || 'dashboard';
+}
+
 export default function App() {
-  const [currentView, setCurrentView] = useState('home'); // home | live_dashboard | dashboard | traders | trades | docs | auth | admin_login
+  const [currentView, setCurrentView] = useState(() => getRouteFromLocation());
   const [user, setUser] = useState(null);
   const [account, setAccount] = useState(null);
   const [siteConfig, setSiteConfig] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [ticks, setTicks] = useState({});
+  const [optionChainWsData, setOptionChainWsData] = useState({});
   const [hasFeedToken, setHasFeedToken] = useState(false);
 
   // Modals state
@@ -35,7 +84,7 @@ export default function App() {
   const [selectedTraderForProfile, setSelectedTraderForProfile] = useState(null);
   const [depositAmount, setDepositAmount] = useState('100000');
 
-  // Order modal & Option chain modal for LiveDashboardView
+  // Quick Order & Option chain modal
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isOptionChainModalOpen, setIsOptionChainModalOpen] = useState(false);
   const [orderModalParams, setOrderModalParams] = useState({
@@ -58,6 +107,43 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // Sync with browser Back / Forward navigation (PopState)
+  useEffect(() => {
+    const handlePopState = () => {
+      const route = getRouteFromLocation();
+      setCurrentView(route);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Handle Google OAuth access_token returned in hash
+  useEffect(() => {
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
+      const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+      const accessToken = hashParams.get('access_token');
+      if (accessToken) {
+        window.history.replaceState(null, '', window.location.pathname);
+        api.auth.googleLogin({ access_token: accessToken })
+          .then((res) => {
+            if (res && res.token) {
+              localStorage.setItem('anvil_token', res.token);
+              localStorage.setItem('anvil_client_id', res.user.dhan_client_id);
+              localStorage.setItem('anvil_access_token', res.user.access_token);
+              setUser(res.user);
+              setAccount(res.account);
+              addToast('success', `Signed in via Google SSO as ${res.user.full_name || res.user.email}!`);
+              setCurrentView('dashboard');
+            }
+          })
+          .catch((err) => {
+            console.error('Google OAuth token verification failed:', err);
+            addToast('error', 'Google SSO authentication failed.');
+          });
+      }
+    }
+  }, []);
+
   // Initialize Default Tick Map
   useEffect(() => {
     const initialMap = {};
@@ -76,7 +162,13 @@ export default function App() {
   // Fetch Current Session & Telemetry
   const fetchSession = async () => {
     let token = localStorage.getItem('anvil_token');
+    const initialRoute = getRouteFromLocation();
+
     if (!token) {
+      if (initialRoute === 'auth' || initialRoute === 'admin_login') {
+        setCurrentView(initialRoute);
+        return;
+      }
       try {
         const demoRes = await api.auth.demoLogin('admin@anvil.local');
         if (demoRes && demoRes.token) {
@@ -85,7 +177,8 @@ export default function App() {
           localStorage.setItem('anvil_access_token', demoRes.user.access_token);
           setUser(demoRes.user);
           setAccount(demoRes.account);
-          setCurrentView('live_dashboard');
+          const initial = getRouteFromLocation();
+          setCurrentView(initial === 'admin_login' ? 'admin_login' : initial || 'dashboard');
           return;
         }
       } catch (e) {}
@@ -98,9 +191,8 @@ export default function App() {
         setAccount(res.account);
         localStorage.setItem('anvil_client_id', res.user.dhan_client_id);
         localStorage.setItem('anvil_access_token', res.user.access_token);
-        if (currentView === 'home' || currentView === 'auth') {
-          setCurrentView('live_dashboard');
-        }
+        const initial = getRouteFromLocation();
+        setCurrentView(initial === 'admin_login' ? 'admin_login' : initial || 'dashboard');
       } else {
         const demoRes = await api.auth.demoLogin('admin@anvil.local');
         if (demoRes && demoRes.token) {
@@ -109,7 +201,8 @@ export default function App() {
           localStorage.setItem('anvil_access_token', demoRes.user.access_token);
           setUser(demoRes.user);
           setAccount(demoRes.account);
-          setCurrentView('live_dashboard');
+          const initial = getRouteFromLocation();
+          setCurrentView(initial === 'admin_login' ? 'admin_login' : initial || 'dashboard');
         }
       }
     } catch (err) {
@@ -121,7 +214,8 @@ export default function App() {
           localStorage.setItem('anvil_access_token', demoRes.user.access_token);
           setUser(demoRes.user);
           setAccount(demoRes.account);
-          setCurrentView('live_dashboard');
+          const initial = getRouteFromLocation();
+          setCurrentView(initial === 'admin_login' ? 'admin_login' : initial || 'dashboard');
         }
       } catch (e) {}
     }
@@ -187,6 +281,12 @@ export default function App() {
                   chp: data.chp,
                 },
               }));
+            } else if (data.type === 'OPTION_CHAIN' || (data.strikes && (data.index_symbol || data.index))) {
+              const idxKey = data.index || data.index_symbol;
+              setOptionChainWsData((prev) => ({
+                ...prev,
+                [idxKey]: data,
+              }));
             }
           } catch (e) {}
         };
@@ -200,7 +300,7 @@ export default function App() {
 
     const startPolling = () => {
       if (pollInterval) return;
-      pollInterval = setInterval(async () => {
+      const fetchOnce = async () => {
         try {
           const res = await api.dhan.getQuotes();
           if (res && res.quotes) {
@@ -213,9 +313,12 @@ export default function App() {
             setTicks((prev) => ({ ...prev, ...update }));
           }
         } catch (e) {}
-      }, 2000);
+      };
+      fetchOnce();
+      pollInterval = setInterval(fetchOnce, 2000);
     };
 
+    startPolling();
     setupWs();
 
     return () => {
@@ -224,25 +327,38 @@ export default function App() {
     };
   }, []);
 
-  // Navigation Guard & Router Handler
+  // Navigation Guard & HTML5 History Router Handler
   const handleNavigate = (view) => {
     if (view === 'admin_login') {
+      if (window.location.pathname !== '/admin') {
+        window.history.pushState({ view: 'admin_login' }, '', '/admin');
+      }
       setCurrentView('admin_login');
       return;
     }
-    if (view === 'profile' || view === 'marmot_config') {
+    if (view === 'profile') {
       setSelectedTraderForProfile(user);
       setIsProfileModalOpen(true);
       return;
     }
+    if (view === 'marmot_config') {
+      view = 'marmot';
+    }
     if (view === 'feed_config') {
-      setIsDataFeedModalOpen(true);
-      return;
+      view = 'feed';
     }
     if (!user && view !== 'home' && view !== 'auth' && view !== 'admin_login') {
-      addToast('info', 'Please sign in or choose a demo account to access the Trading Terminal.');
+      addToast('info', 'Please sign in or choose a demo account to access the Market Desk.');
+      if (window.location.pathname !== '/') {
+        window.history.pushState({ view: 'home' }, '', '/');
+      }
       setCurrentView('home');
       return;
+    }
+
+    const targetPath = VIEW_TO_PATH[view] || '/dashboard';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ view }, '', targetPath);
     }
     setCurrentView(view);
   };
@@ -259,7 +375,7 @@ export default function App() {
         setAccount(res.account);
         addToast('success', `Switched to ${res.user.full_name} (${res.user.dhan_client_id})`);
         if (currentView === 'home' || currentView === 'auth') {
-          setCurrentView('live_dashboard');
+          handleNavigate('dashboard');
         }
       }
     } catch (err) {
@@ -274,6 +390,9 @@ export default function App() {
     localStorage.removeItem('anvil_access_token');
     setUser(null);
     setAccount(null);
+    if (window.location.pathname !== '/') {
+      window.history.pushState({ view: 'home' }, '', '/');
+    }
     setCurrentView('home');
     addToast('info', 'Signed out of ANVIL sandbox session.');
   };
@@ -303,13 +422,13 @@ export default function App() {
           onLoginSuccess={(u, a) => {
             setUser(u);
             setAccount(a);
-            setCurrentView('live_dashboard');
+            handleNavigate('dashboard');
           }}
           onNavigateToTrader={() => {
             if (user) {
-              setCurrentView('live_dashboard');
+              handleNavigate('dashboard');
             } else {
-              setCurrentView('home');
+              handleNavigate('home');
             }
           }}
           addToast={addToast}
@@ -328,6 +447,8 @@ export default function App() {
               setSelectedTraderForProfile(user);
               setIsProfileModalOpen(true);
             }}
+            onOpenOptionChainModal={() => setIsOptionChainModalOpen(true)}
+            onOpenDataFeed={() => setIsDataFeedModalOpen(true)}
           />
 
           {/* Main Viewport */}
@@ -346,28 +467,12 @@ export default function App() {
 
             {/* View Router */}
             <main style={{ flex: 1, padding: '0 0 40px 0' }}>
-              {/* 1. Live Dashboard (Screenshot matching: Rocket card + Option Chain) */}
-              {currentView === 'live_dashboard' && (
-                <LiveDashboardView
-                  user={user}
-                  account={account}
-                  ticks={ticks}
-                  onOpenOrderModal={(params) => {
-                    setOrderModalParams(params);
-                    setIsOrderModalOpen(true);
-                  }}
-                  onOpenOptionChainModal={() => setIsOptionChainModalOpen(true)}
-                  addToast={addToast}
-                />
-              )}
-
-              {/* 2. Sandbox Terminal (Full Telemetry + Orders + Positions + Terminal) */}
-              {(currentView === 'dashboard' || currentView === 'optionchain' || currentView === 'overview') && (
+              {/* 1. Market Desk (Primary Trading Sandbox: Real Quotes, Level-1 Depth, Positions & Orders) */}
+              {(currentView === 'dashboard' || currentView === 'overview' || currentView === 'market') && (
                 <Dashboard
                   user={user}
                   account={account}
                   ticks={ticks}
-                  initialTab={currentView === 'optionchain' ? 'optionchain' : 'positions'}
                   onRefreshAccount={fetchSession}
                   addToast={addToast}
                   onOpenMarmotConfig={() => {
@@ -378,7 +483,30 @@ export default function App() {
                 />
               )}
 
-              {/* 3. Admin Traders View */}
+              {/* 2. Visual Terminal & Candlestick Charts with Position & Order Overlays */}
+              {currentView === 'charts' && (
+                <ChartsPage
+                  user={user}
+                  account={account}
+                  ticks={ticks}
+                  addToast={addToast}
+                  onRefreshAccount={fetchSession}
+                />
+              )}
+
+              {/* 3. Dedicated Full-Page Option Chain Matrix */}
+              {currentView === 'optionchain' && (
+                <OptionChainPage
+                  user={user}
+                  account={account}
+                  ticks={ticks}
+                  optionChainWsData={optionChainWsData}
+                  addToast={addToast}
+                  onRefreshAccount={fetchSession}
+                />
+              )}
+
+              {/* 2. Admin Traders Directory */}
               {currentView === 'traders' && (
                 <AdminTradersView
                   addToast={addToast}
@@ -389,14 +517,28 @@ export default function App() {
                 />
               )}
 
-              {/* 4. Admin Trade Controls View */}
+              {/* 3. Admin Orders & Execution Ledger */}
               {currentView === 'trades' && (
                 <AdminTradesView addToast={addToast} />
               )}
 
-              {/* 5. API Documentation & Wire Specs */}
-              {currentView === 'docs' && (
-                <ApiDocsPage user={user} addToast={addToast} />
+              {/* 4. Dedicated Market Data Feed Configuration Page */}
+              {currentView === 'feed' && (
+                <MarketFeedPage
+                  user={user}
+                  ticks={ticks}
+                  addToast={addToast}
+                />
+              )}
+
+              {/* 5. Dedicated Marmot Connect & Gateway Page */}
+              {currentView === 'marmot' && (
+                <MarmotConnectPage
+                  user={user}
+                  account={account}
+                  onRefreshAccount={fetchSession}
+                  addToast={addToast}
+                />
               )}
             </main>
           </div>
@@ -422,7 +564,7 @@ export default function App() {
                 onLoginSuccess={(u, a) => {
                   setUser(u);
                   setAccount(a);
-                  setCurrentView('live_dashboard');
+                  handleNavigate('dashboard');
                 }}
                 addToast={addToast}
               />
@@ -434,7 +576,7 @@ export default function App() {
                 onLoginSuccess={(u, a) => {
                   setUser(u);
                   setAccount(a);
-                  setCurrentView('live_dashboard');
+                  handleNavigate('dashboard');
                 }}
                 onSwitchDemoUser={handleSwitchUser}
                 addToast={addToast}
@@ -459,7 +601,7 @@ export default function App() {
         onNavigate={handleNavigate}
       />
 
-      {/* Order Modal for placing trades from LiveDashboardView */}
+      {/* Quick Order Modal */}
       <OrderModal
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}

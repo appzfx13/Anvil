@@ -122,12 +122,34 @@ class VerifyOtpView(APIView):
 class GoogleSsoView(APIView):
     """
     POST /api/auth/google
-    Handles Google OAuth SSO login/registration.
+    Handles Google OAuth SSO login/registration with real Google token verification.
     """
+    def get(self, request):
+        return Response({
+            'client_id': getattr(settings, 'GOOGLE_CLIENT_ID', ''),
+        }, status=status.HTTP_200_OK)
+
     def post(self, request):
+        access_token = request.data.get('access_token', '').strip()
         email = request.data.get('email', '').strip().lower()
         full_name = request.data.get('name', '').strip()
         google_id = request.data.get('google_id', '').strip()
+
+        # If real Google Access Token provided, verify against Google API
+        if access_token:
+            try:
+                g_res = requests.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {access_token}'},
+                    timeout=5.0
+                )
+                if g_res.status_code == 200:
+                    g_data = g_res.json()
+                    email = g_data.get('email', '').lower()
+                    full_name = g_data.get('name', full_name)
+                    google_id = g_data.get('sub', google_id)
+            except Exception as e:
+                print(f"[GOOGLE-SSO] Error verifying token with Google: {e}")
 
         if not email or '@' not in email:
             return Response({'error': 'Valid Google email is required.'}, status=status.HTTP_400_BAD_REQUEST)

@@ -84,20 +84,38 @@ class AdjustFundsView(APIView):
 class ResetAccountView(APIView):
     """
     POST /api/accounts/reset
-    Resets account balance and closes all open positions/orders.
+    Resets account balance, wipes all trades, orders, and positions back to SOD state.
     """
     def post(self, request):
         account = get_target_account(request)
         if not account:
             return Response({'error': 'No active account found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Reset ledger values
+        client_id = (
+            getattr(account.user, 'dhan_client_id', '') or 
+            getattr(account, 'dhan_client_id', '') or 
+            request.headers.get('client-id') or 
+            request.query_params.get('clientId') or 
+            '1000000001'
+        )
+
+        # 1. Reset ledger values
         account.availabel_balance = account.sod_limit
         account.utilized_margin = Decimal('0.00')
         account.withdrawable_balance = account.sod_limit
         account.save()
 
-        # Log reset transaction
+        # 2. Completely purge all trades, orders, and positions for this client
+        try:
+            from apps.dhan_v2.models import Position, Order, Trade
+            Trade.objects.filter(dhan_client_id=client_id).delete()
+            Order.objects.filter(dhan_client_id=client_id).delete()
+            Position.objects.filter(dhan_client_id=client_id).delete()
+        except Exception:
+            pass
+
+        # 3. Clean up ledger transactions and create fresh baseline
+        LedgerTransaction.objects.filter(account=account).delete()
         LedgerTransaction.objects.create(
             account=account,
             amount=Decimal('0.00'),
@@ -108,8 +126,10 @@ class ResetAccountView(APIView):
 
         return Response({
             'success': True,
-            'message': 'Sandbox session and ledger reset to initial SOD limit.',
+            'message': 'Sandbox session, orders, trades, and positions completely reset to SOD.',
             'availabel_balance': float(account.availabel_balance),
             'sod_limit': float(account.sod_limit),
             'utilized_margin': 0.0,
         }, status=status.HTTP_200_OK)
+
+

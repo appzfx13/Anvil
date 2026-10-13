@@ -7,14 +7,14 @@ class VirtualAccount(models.Model):
     dhan_client_id = models.CharField(max_length=20, unique=True, db_index=True)
     account_name = models.CharField(max_length=150, default='Primary Trading Account')
     
-    # Balance & Margins
-    availabel_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('500000.00'))
-    sod_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('500000.00'))
+    # Balance & Margins (Zero Initial Balance)
+    availabel_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    sod_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     collateral_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     receiveable_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     utilized_margin = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     blocked_payout_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
-    withdrawable_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('500000.00'))
+    withdrawable_balance = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

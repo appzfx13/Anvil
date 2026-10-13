@@ -215,7 +215,9 @@ func startTickStreamer(hub *Hub, rdb *redis.Client) {
 		prices[idx.Symbol] = idx.BasePrice
 	}
 
+	chainCounter := 0
 	for range ticker.C {
+		chainCounter++
 		for _, idx := range supportedIndices {
 			// 1. Check if real-time Fyers quote is in Redis
 			foundLive := false
@@ -236,6 +238,23 @@ func startTickStreamer(hub *Hub, rdb *redis.Client) {
 						hub.broadcast <- payload
 						prices[idx.Symbol] = liveTick.LTP
 						foundLive = true
+					}
+				}
+
+				// 2. Broadcast Live Option Chain every 2 seconds if present in Redis
+				if chainCounter%2 == 0 {
+					cCtx, cCancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+					chainVal, chainErr := rdb.Get(cCtx, fmt.Sprintf("anvil:option_chain:%s", idx.Symbol)).Result()
+					cCancel()
+					if chainErr == nil && chainVal != "" {
+						var chainMap map[string]interface{}
+						if jsonErr := json.Unmarshal([]byte(chainVal), &chainMap); jsonErr == nil {
+							chainMap["type"] = "OPTION_CHAIN"
+							chainMap["index"] = idx.Symbol
+							if b, bErr := json.Marshal(chainMap); bErr == nil {
+								hub.broadcast <- b
+							}
+						}
 					}
 				}
 			}

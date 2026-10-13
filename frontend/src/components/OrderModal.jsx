@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpRight, ArrowDownRight, Calculator, Check, AlertCircle } from 'lucide-react';
 import { SUPPORTED_INDICES, ORDER_TYPES, PRODUCT_TYPES } from '../services/constants';
+import { formatTradingSymbol } from '../services/formatters';
 
 export default function OrderModal({
   isOpen,
@@ -28,7 +29,9 @@ export default function OrderModal({
   const quantity = lotSize * multiplier;
 
   const currentStrike = defaultStrike || currentIndex.baseSpot;
-  const tradingSymbol = defaultSymbol || `${currentIndex.key}26OCT${currentStrike}${optionType}`;
+  const baseName = currentIndex.name ? currentIndex.name.split(' ')[0] : 'NIFTY';
+  const defaultSynthSymbol = `${baseName} 26 OCT ${currentStrike} ${optionType}`;
+  const tradingSymbol = defaultSymbol ? formatTradingSymbol(defaultSymbol) : defaultSynthSymbol;
 
   // Estimate required margin
   const priceNum = parseFloat(customPrice) || 0;

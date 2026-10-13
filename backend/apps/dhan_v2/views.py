@@ -23,6 +23,7 @@ from apps.authentication.models import User
 from apps.accounts.models import VirtualAccount
 from apps.dhan_v2.models import Order, Trade, Position, Holding
 from apps.fyers_feed.services import fyers_service
+from apps.dhan_v2.matching_engine import evaluate_orders_and_sltp, normalize_order_type, normalize_trading_symbol
 
 def resolve_client_id(request) -> str:
     """Extracts client-id from headers or token to guarantee multi-user isolation."""
@@ -141,6 +142,7 @@ class OrdersView(APIView):
     """
     def get(self, request):
         client_id = resolve_client_id(request)
+        evaluate_orders_and_sltp(client_id)
         orders = Order.objects.filter(dhan_client_id=client_id).order_by('-order_timestamp')
         
         data = [
@@ -193,10 +195,10 @@ class OrdersView(APIView):
         transaction_type = (d.get('transactionType') or d.get('transaction_type', 'BUY')).upper()
         exchange_segment = d.get('exchangeSegment') or d.get('exchange_segment', ExchangeSegment.NSE_FNO.value)
         product_type = d.get('productType') or d.get('product_type', ProductType.INTRADAY.value)
-        order_type = (d.get('orderType') or d.get('order_type', OrderType.MARKET.value)).upper()
+        order_type = normalize_order_type(d.get('orderType') or d.get('order_type', OrderType.MARKET.value))
         validity = d.get('validity', 'DAY').upper()
         security_id = str(d.get('securityId') or d.get('security_id', '49081'))
-        trading_symbol = d.get('tradingSymbol') or d.get('trading_symbol', 'NIFTY_MOCK_OPT')
+        trading_symbol = normalize_trading_symbol(d.get('tradingSymbol') or d.get('trading_symbol', 'NIFTY_MOCK_OPT'))
         
         try:
             quantity = int(d.get('quantity', 0))
@@ -209,6 +211,19 @@ class OrdersView(APIView):
 
         if quantity <= 0:
             return Response({'status': 'failure', 'remarks': 'Quantity must be greater than zero'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Rule Enforcement: Index is not a tradable instrument
+        upper_sym = trading_symbol.upper()
+        non_tradable_indices = [
+            'NIFTY50', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'MIDCAPNIFTY', 'SENSEX',
+            'NIFTY 50', 'BANK NIFTY', 'FIN NIFTY', 'MIDCAP NIFTY', 'BSE SENSEX',
+            'NSE:NIFTY50-INDEX', 'NSE:NIFTYBANK-INDEX', 'NSE:FINNIFTY-INDEX', 'NSE:MIDCPNIFTY-INDEX', 'BSE:SENSEX-INDEX'
+        ]
+        if upper_sym.endswith('-INDEX') or upper_sym in non_tradable_indices:
+            return Response({
+                'status': 'failure',
+                'remarks': f"Order Rejected: '{trading_symbol}' is an underlying Index and is not a tradable instrument. Please select an Option contract (CE/PE) or Futures contract on this index."
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         order_id = Order.generate_order_id()
 
@@ -331,6 +346,10 @@ class OrdersView(APIView):
             dispatch_postback(order, 'ORDER_TRADED')
         else:
             dispatch_postback(order, 'ORDER_PENDING')
+            # Evaluate SL/TP and limit triggers immediately against current market LTP
+            evaluate_orders_and_sltp(client_id)
+            order.refresh_from_db()
+            final_status = order.order_status
 
         return Response({
             "orderId": order_id,
@@ -453,6 +472,7 @@ class PositionsView(APIView):
     """
     def get(self, request):
         client_id = resolve_client_id(request)
+        evaluate_orders_and_sltp(client_id)
         positions = Position.objects.filter(dhan_client_id=client_id)
 
         result = []
@@ -871,3 +891,20 @@ class TestPostbackView(APIView):
                 "error": f"Failed to deliver postback to {url}: {str(e)}",
                 "target_url": url,
             }, status=status.HTTP_502_BAD_GATEWAY)
+
+class EvaluateOrdersView(APIView):
+    """
+    POST /v2/orders/evaluate-triggers
+    Forces real-time matching and execution of pending SL, SL-M, Limit, and Position SL/TP orders.
+    Can accept optional simulated_ltps: {"NIFTY 22500 CE": 165.0} to test SL/TP trigger execution.
+    """
+    def post(self, request):
+        client_id = resolve_client_id(request)
+        simulated = request.data.get('simulated_ltps') or request.data.get('prices')
+        sim_map = None
+        if isinstance(simulated, dict):
+            sim_map = {k: Decimal(str(v)) for k, v in simulated.items()}
+        result = evaluate_orders_and_sltp(client_id, simulated_ltps=sim_map)
+        return Response(result, status=status.HTTP_200_OK)
+
+

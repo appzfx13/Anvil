@@ -116,20 +116,20 @@ class AdminTraderActionView(APIView):
             }, status=status.HTTP_200_OK)
 
         elif action == 'reset_ledger':
-            # Reset balance to SOD 500,000, clear utilized margin, cancel orders, clear positions
+            # Reset balance to SOD 500,000, clear utilized margin, delete orders, trades, positions, ledger
             account.availabel_balance = Decimal('500000.00')
             account.utilized_margin = Decimal('0.00')
             account.withdrawable_balance = Decimal('500000.00')
             account.save()
 
-            Order.objects.filter(dhan_client_id=user.dhan_client_id, order_status='PENDING').update(
-                order_status='CANCELLED', rejection_reason='Admin Ledger Reset'
-            )
+            Order.objects.filter(dhan_client_id=user.dhan_client_id).delete()
+            Trade.objects.filter(dhan_client_id=user.dhan_client_id).delete()
             Position.objects.filter(dhan_client_id=user.dhan_client_id).delete()
+            LedgerTransaction.objects.filter(account=account).delete()
 
             return Response({
                 'success': True,
-                'message': f"Ledger reset to ₹500,000.00 for {user.email}.",
+                'message': f"Ledger reset to ₹500,000.00 for {user.email}. All orders, trades, and positions cleared.",
                 'available_balance': 500000.00
             }, status=status.HTTP_200_OK)
 

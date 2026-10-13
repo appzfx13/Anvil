@@ -3,7 +3,8 @@ from apps.fyers_feed.views import (
     FyersConfigView,
     FyersAuthUrlView,
     FyersCallbackView,
-    FyersTestFeedView
+    FyersTestFeedView,
+    FyersHistoryView
 )
 
 urlpatterns = [
@@ -11,4 +12,6 @@ urlpatterns = [
     path('auth-url/', FyersAuthUrlView.as_view(), name='fyers-auth-url'),
     path('callback/', FyersCallbackView.as_view(), name='fyers-callback'),
     path('test-feed/', FyersTestFeedView.as_view(), name='fyers-test-feed'),
+    path('history/', FyersHistoryView.as_view(), name='fyers-history'),
 ]
+

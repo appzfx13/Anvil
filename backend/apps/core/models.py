@@ -21,7 +21,7 @@ class SiteConfiguration(models.Model):
     # General Broker Sandbox Settings
     feed_active = models.BooleanField(default=True)
     postback_webhook_url = models.CharField(max_length=255, blank=True, default='')
-    default_sod_balance = models.DecimalField(max_digits=14, decimal_places=2, default=500000.00)
+    default_sod_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
 
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

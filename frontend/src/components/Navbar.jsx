@@ -115,20 +115,6 @@ export default function Navbar({
                 <Terminal size={16} />
                 Terminal
               </button>
-              <button
-                id="nav-link-docs"
-                className="btn-secondary"
-                onClick={() => setCurrentView('docs')}
-                style={{
-                  background: currentView === 'docs' ? 'var(--bg-surface-elevated)' : 'transparent',
-                  borderColor: currentView === 'docs' ? 'var(--accent-primary)' : 'transparent',
-                  fontSize: '0.88rem',
-                  padding: '8px 14px',
-                }}
-              >
-                <BookOpen size={16} />
-                API Docs
-              </button>
             </>
           )}
         </nav>

@@ -15,7 +15,8 @@ from apps.dhan_v2.views import (
     TokenExchangeView,
     KillSwitchView,
     PostbackConfigView,
-    TestPostbackView
+    TestPostbackView,
+    EvaluateOrdersView
 )
 
 urlpatterns = [
@@ -30,6 +31,8 @@ urlpatterns = [
     path('killswitch/', KillSwitchView.as_view()),
 
     # Dhan v2 Core Endpoints
+    path('orders/evaluate-triggers', EvaluateOrdersView.as_view(), name='dhan-evaluate-triggers'),
+    path('orders/evaluate-triggers/', EvaluateOrdersView.as_view()),
     path('orders', OrdersView.as_view(), name='dhan-orders'),
     path('orders/', OrdersView.as_view()),
     path('orders/<str:order_id>', OrderDetailView.as_view(), name='dhan-order-detail'),

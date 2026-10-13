@@ -106,16 +106,24 @@ INDEX_SPECS: Dict[str, Dict[str, Any]] = {
     },
 }
 
-# Aliases to normalize input query parameters
 INDEX_ALIASES: Dict[str, str] = {
     "NIFTY": SupportedIndex.NIFTY50.value,
     "NIFTY50": SupportedIndex.NIFTY50.value,
+    "NIFTY 50": SupportedIndex.NIFTY50.value,
+    "NIFTY-50": SupportedIndex.NIFTY50.value,
+    "NSE:NIFTY50-INDEX": SupportedIndex.NIFTY50.value,
     "BANKNIFTY": SupportedIndex.BANKNIFTY.value,
     "BANK_NIFTY": SupportedIndex.BANKNIFTY.value,
+    "BANK NIFTY": SupportedIndex.BANKNIFTY.value,
+    "NSE:NIFTYBANK-INDEX": SupportedIndex.BANKNIFTY.value,
     "FINNIFTY": SupportedIndex.FINNIFTY.value,
+    "FIN NIFTY": SupportedIndex.FINNIFTY.value,
+    "NSE:FINNIFTY-INDEX": SupportedIndex.FINNIFTY.value,
     "MIDCPNIFTY": SupportedIndex.MIDCAPNIFTY.value,
     "MIDCAPNIFTY": SupportedIndex.MIDCAPNIFTY.value,
+    "NSE:MIDCPNIFTY-INDEX": SupportedIndex.MIDCAPNIFTY.value,
     "SENSEX": SupportedIndex.SENSEX.value,
+    "BSE:SENSEX-INDEX": SupportedIndex.SENSEX.value,
 }
 
 def resolve_index(index_key: str) -> str:

@@ -37,8 +37,8 @@ export const api = {
   // Authentication & Session
   auth: {
     sendOtp: (email) => request(`${API_BASE}/auth/otp/send/`, { method: 'POST', body: JSON.stringify({ email }) }),
-    verifyOtp: (email, otp) => request(`${API_BASE}/auth/otp/verify/`, { method: 'POST', body: JSON.stringify({ email, otp }) }),
-    googleLogin: (email, name, google_id) => request(`${API_BASE}/auth/google/`, { method: 'POST', body: JSON.stringify({ email, name, google_id }) }),
+    getGoogleConfig: () => request(`${API_BASE}/auth/google/`),
+    googleLogin: (data) => request(`${API_BASE}/auth/google/`, { method: 'POST', body: JSON.stringify(typeof data === 'object' ? data : { email: data }) }),
     demoLogin: (email) => request(`${API_BASE}/auth/demo-login/`, { method: 'POST', body: JSON.stringify(email ? { email } : {}) }),
     adminLogin: (credentials) => request(`${API_BASE}/auth/admin-login/`, { method: 'POST', body: JSON.stringify(credentials) }),
     getMe: () => request(`${API_BASE}/auth/me/`),
@@ -70,7 +70,14 @@ export const api = {
     saveConfig: (configData) => request(`${API_BASE}/fyers/config/`, { method: 'POST', body: JSON.stringify(configData) }),
     getAuthUrl: (redirectUri) => request(`${API_BASE}/fyers/auth-url/?redirect_uri=${encodeURIComponent(redirectUri || '')}`),
     testFeed: () => request(`${API_BASE}/fyers/test-feed/`, { method: 'POST' }),
+    getHistory: (symbol, resolution = '5m', from, to) => {
+      let url = `${API_BASE}/fyers/history/?symbol=${encodeURIComponent(symbol)}&resolution=${resolution}`;
+      if (from) url += `&from=${from}`;
+      if (to) url += `&to=${to}`;
+      return request(url);
+    },
   },
+
 
   // Dhan v2 Core Endpoints
   dhan: {
@@ -86,5 +93,6 @@ export const api = {
     getFundLimit: () => request(`${DHAN_BASE}/fundlimit`),
     getOptionChain: (index = 'NIFTY50') => request(`${DHAN_BASE}/optionchain?index=${index}`),
     getQuotes: () => request(`${DHAN_BASE}/quotes`),
+    evaluateOrders: () => request(`${DHAN_BASE}/orders/evaluate-triggers`, { method: 'POST' }),
   },
 };

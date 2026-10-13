@@ -170,5 +170,10 @@ POSTBACK_WEBHOOK_URL = os.getenv('POSTBACK_WEBHOOK_URL', 'http://localhost:8000/
 POSTBACK_ENABLED = os.getenv('POSTBACK_ENABLED', 'True').lower() in ('true', '1', 'yes')
 
 # Ledger Defaults
-DEFAULT_SOD_BALANCE = float(os.getenv('DEFAULT_SOD_BALANCE', 500000.00))
+DEFAULT_SOD_BALANCE = float(os.getenv('DEFAULT_SOD_BALANCE', 0.00))
 MAX_ORDER_QUANTITY_LIMIT = int(os.getenv('MAX_ORDER_QUANTITY_LIMIT', 10000))
+
+# Google SSO OAuth2 Configuration (Loaded strictly from .env)
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+

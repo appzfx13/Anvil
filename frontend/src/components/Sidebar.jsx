@@ -1,38 +1,21 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard,
+  Activity,
   Terminal,
   Layers,
-  Activity,
-  Users,
   Receipt,
-  BookOpen,
-  Settings,
   Radio,
   KeyRound,
-  ShieldAlert,
+  BookOpen,
+  Users,
+  ShieldCheck,
   LogOut,
   ChevronDown,
-  UserCheck,
+  Sparkles,
   Zap,
   Globe,
-  Sliders,
-  Bookmark,
-  FileText,
-  PieChart,
-  Cpu,
-  Database,
-  Calendar,
-  Sparkles,
-  SlidersHorizontal,
-  Server,
-  Share2,
-  Workflow,
-  Shield,
-  Bot,
-  Cloud,
-  Gamepad2,
-  ShieldCheck
+  TrendingUp,
+  BarChart2
 } from 'lucide-react';
 
 export default function Sidebar({
@@ -42,6 +25,8 @@ export default function Sidebar({
   onLogout,
   onSwitchUser,
   onOpenProfile,
+  onOpenOptionChainModal,
+  onOpenDataFeed,
 }) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const isAdmin = Boolean(user?.is_staff || user?.is_superuser);
@@ -52,277 +37,220 @@ export default function Sidebar({
     { email: 'trader2@anvil.local', name: 'Aarav Algo', clientId: '1000000003', role: 'Trader 2' },
   ];
 
-  const displayName = user?.full_name ? (user.full_name.includes(' ') ? user.full_name.split(' ')[0] : user.full_name) : (isAdmin ? 'Super' : 'Trader');
-  const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : (isAdmin ? 'S' : 'T');
-  const displayEmail = user?.email || (isAdmin ? 'admin@marmot.local' : 'trader@anvil.local');
-  const truncatedEmail = displayEmail.length > 15 ? displayEmail.substring(0, 12) + '...' : displayEmail;
+  const displayName = user?.full_name ? (user.full_name.includes(' ') ? user.full_name.split(' ')[0] : user.full_name) : (isAdmin ? 'Admin' : 'Trader');
+  const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : (isAdmin ? 'A' : 'T');
+  const displayEmail = user?.email || (isAdmin ? 'admin@antigravity.io' : 'trader@antigravity.io');
+  const clientId = user?.dhan_client_id || '1000000001';
 
   return (
-    <aside id="anvil-sidebar-navigation" className="sidebar-nav">
-      {/* Brand Header */}
+    <aside
+      id="antigravity-sidebar-navigation"
+      className="sidebar-nav"
+      style={{
+        width: '250px',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        background: '#06070b',
+        borderRight: '1px solid rgba(255, 255, 255, 0.07)',
+        display: 'flex',
+        flexDirection: 'column',
+        zIndex: 50,
+        boxSizing: 'border-box',
+        userSelect: 'none',
+      }}
+    >
+      {/* Antigravity Brand Header */}
       <div
         style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+          padding: '20px 20px 16px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer' }}
-          onClick={() => onNavigate('live_dashboard')}
+          style={{ display: 'flex', alignItems: 'center', gap: '11px', cursor: 'pointer' }}
+          onClick={() => onNavigate('dashboard')}
+          title="ANVIL Quant Terminal"
         >
+          {/* Glowing Cosmic Orb Icon */}
           <div
             style={{
-              width: '30px',
-              height: '30px',
-              borderRadius: '7px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #00f5ff 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 14px rgba(16, 185, 129, 0.35)',
+              boxShadow: '0 0 20px rgba(99, 102, 241, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4)',
+              position: 'relative',
             }}
           >
-            <Zap size={17} color="#ffffff" />
+            <Sparkles size={16} color="#ffffff" />
           </div>
-          <span style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
-            MARMOT
-          </span>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '1.22rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#ffffff', fontFamily: 'var(--font-display)' }}>
+                ANVIL
+              </span>
+            </div>
+            <div style={{ fontSize: '0.62rem', color: '#64748b', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', fontWeight: 600 }}>
+              QUANT TERMINAL
+            </div>
+          </div>
         </div>
 
+        {/* Status Tag */}
         <span
-          className="badge-cyan"
           style={{
-            fontSize: '0.65rem',
-            padding: '2px 8px',
+            fontSize: '0.6rem',
+            padding: '2px 7px',
             borderRadius: '999px',
-            fontWeight: 800,
+            fontWeight: 700,
             letterSpacing: '0.04em',
-            background: 'rgba(6, 182, 212, 0.15)',
-            color: '#38bdf8',
-            border: '1px solid rgba(6, 182, 212, 0.3)',
+            background: isAdmin ? 'rgba(99, 102, 241, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+            color: isAdmin ? '#a5b4fc' : '#34d399',
+            border: `1px solid ${isAdmin ? 'rgba(99, 102, 241, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+            fontFamily: 'var(--font-mono)',
           }}
         >
           {isAdmin ? 'ADMIN' : 'TRADER'}
         </span>
       </div>
 
-      {/* Navigation Sections */}
-      <div style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
-        {/* SECTION 1: DASHBOARDS & TRADING */}
-        <div className="nav-section-title">DASHBOARDS & TRADING</div>
+      {/* Clean Navigation Tree */}
+      <div style={{ flex: 1, padding: '12px 0', overflowY: 'auto', overflowX: 'hidden' }}>
+        
+        {/* SECTION 1: WORKSPACE */}
+        <div className="nav-section-title">
+          <span>WORKSPACE</span>
+        </div>
 
-        {/* Dashboard - Live (Screenshot item 1) */}
+        {/* 1. Market Desk (Primary Trading Sandbox) */}
         <button
-          id="nav-dashboard-live"
-          className={`nav-link-btn ${currentView === 'live_dashboard' ? 'active' : ''}`}
-          onClick={() => onNavigate('live_dashboard')}
-          title="Live Dashboard"
-          style={{
-            background: currentView === 'live_dashboard' ? 'rgba(0, 230, 118, 0.12)' : 'transparent',
-            borderLeft: currentView === 'live_dashboard' ? '3px solid #00e676' : '3px solid transparent',
-            color: currentView === 'live_dashboard' ? '#ffffff' : '#94a3b8',
-          }}
+          id="nav-market-desk"
+          className={`nav-link-btn ${currentView === 'dashboard' ? 'active-cyan' : ''}`}
+          onClick={() => onNavigate('dashboard')}
+          title="Live Quotes, Option Chain, Positions & Execution Sandbox"
         >
-          <Zap size={15} color="#00e676" />
-          <span style={{ flex: 1, fontWeight: currentView === 'live_dashboard' ? 700 : 500 }}>
-            Dashboard - Live
+          <Activity size={16} color={currentView === 'dashboard' ? '#06b6d4' : '#94a3b8'} />
+          <span style={{ flex: 1 }}>Market Desk</span>
+          <span style={{ fontSize: '0.62rem', background: 'rgba(6, 182, 212, 0.12)', color: '#06b6d4', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+            LIVE
           </span>
         </button>
 
-        {/* Sandbox Terminal (Screenshot item 2) */}
+        {/* 2. Visual Terminal & Charts */}
         <button
-          id="nav-sandbox-terminal"
-          className={`nav-link-btn ${currentView === 'dashboard' ? 'active' : ''}`}
-          onClick={() => onNavigate('dashboard')}
-          style={{
-            background: currentView === 'dashboard' ? 'rgba(0, 210, 255, 0.12)' : 'transparent',
-            borderLeft: currentView === 'dashboard' ? '3px solid #00d2ff' : '3px solid transparent',
-            color: currentView === 'dashboard' ? '#ffffff' : '#94a3b8',
-          }}
+          id="nav-visual-charts"
+          className={`nav-link-btn ${currentView === 'charts' ? 'active-cyan' : ''}`}
+          onClick={() => onNavigate('charts')}
+          title="Interactive Candlestick Chart with Positions & Orders Overlays"
         >
-          <Shield size={15} color="#00d2ff" />
-          <span style={{ flex: 1, fontWeight: currentView === 'dashboard' ? 700 : 500 }}>
-            Sandbox Terminal
+          <TrendingUp size={16} color={currentView === 'charts' ? '#06b6d4' : '#94a3b8'} />
+          <span style={{ flex: 1 }}>Charts & Terminal</span>
+          <span style={{ fontSize: '0.62rem', background: 'rgba(6, 182, 212, 0.12)', color: '#06b6d4', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+            VISUAL
           </span>
         </button>
 
-        {/* Saved Sessions (Screenshot item 3) */}
+        {/* 3. Option Chain (Dedicated Full-Page Matrix) */}
         <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('dashboard')}
+          id="nav-option-chain"
+          className={`nav-link-btn ${currentView === 'optionchain' ? 'active' : ''}`}
+          onClick={() => onNavigate('optionchain')}
+          title="Full-Page 31-Strike Call/Put Greeks Matrix"
         >
-          <Bookmark size={15} color="#00d2ff" />
-          <span>Saved Sessions</span>
+          <Layers size={16} color={currentView === 'optionchain' ? '#818cf8' : '#94a3b8'} />
+          <span style={{ flex: 1 }}>Option Chain</span>
+          <span style={{ fontSize: '0.62rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+            31 STRIKES
+          </span>
         </button>
 
-        {/* Trading Journal (Screenshot item 4) */}
+        {/* 4. Orders & Trades */}
         <button
-          id="nav-trading-journal"
+          id="nav-orders-trades"
           className={`nav-link-btn ${currentView === 'trades' ? 'active' : ''}`}
           onClick={() => onNavigate('trades')}
+          title="Execution Ledger & Trade History"
         >
-          <FileText size={15} color="#00d2ff" />
-          <span>Trading Journal</span>
+          <Receipt size={16} color={currentView === 'trades' ? '#818cf8' : '#94a3b8'} />
+          <span style={{ flex: 1 }}>Orders & Trades</span>
         </button>
 
-        {/* Executive Overview (Screenshot item 5) */}
+        {/* SECTION 2: INTEGRATIONS */}
+        <div className="nav-section-title" style={{ marginTop: '10px' }}>
+          <span>INTEGRATIONS</span>
+        </div>
+
+        {/* 5. Market Data Feed */}
         <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('live_dashboard')}
+          id="nav-market-feed"
+          className={`nav-link-btn ${currentView === 'feed' ? 'active' : ''}`}
+          onClick={() => onNavigate('feed')}
+          title="Fyers API v3 WebSocket & Token Configuration (Dedicated Page)"
         >
-          <PieChart size={15} color="#00d2ff" />
-          <span>Executive Overview</span>
+          <Radio size={16} color="#f59e0b" />
+          <span style={{ flex: 1 }}>Market Feed</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+            <span style={{ fontSize: '0.62rem', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+              FYERS v3
+            </span>
+          </div>
         </button>
 
-        {/* SECTION 2: STRATEGY & RESEARCH */}
-        <div className="nav-section-title" style={{ marginTop: '12px' }}>STRATEGY & RESEARCH</div>
-
+        {/* 6. Marmot Connect */}
         <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('live_dashboard')}
+          id="nav-marmot-connect"
+          className={`nav-link-btn ${currentView === 'marmot' ? 'active' : ''}`}
+          onClick={() => onNavigate('marmot')}
+          title="Dhan v2 Credentials & Safety Kill Switch (Dedicated Page)"
         >
-          <Workflow size={15} color="#f1f5f9" />
-          <span>Strategy Hub</span>
+          <KeyRound size={16} color="#34d399" />
+          <span style={{ flex: 1 }}>Marmot Connect</span>
+          <span style={{ fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+            DHAN v2
+          </span>
         </button>
 
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('live_dashboard')}
-        >
-          <Cpu size={15} color="#94a3b8" />
-          <span>Backtest Engine</span>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('live_dashboard')}
-        >
-          <SlidersHorizontal size={15} color="#94a3b8" />
-          <span>Strategy Check</span>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('live_dashboard')}
-        >
-          <Sparkles size={15} color="#f59e0b" />
-          <span>AI Dashboard</span>
-        </button>
-
-        {/* SECTION 3: MARKET DATA & TELEMETRY */}
-        <div className="nav-section-title" style={{ marginTop: '12px' }}>MARKET DATA & TELEMETRY</div>
-
-        <button
-          className={`nav-link-btn ${currentView === 'feed_config' ? 'active' : ''}`}
-          onClick={() => onNavigate('feed_config')}
-        >
-          <Radio size={15} color="#f59e0b" />
-          <span style={{ flex: 1 }}>Live Data Feed</span>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('dashboard')}
-        >
-          <Cloud size={15} color="#94a3b8" />
-          <span>Market Backups</span>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('dashboard')}
-        >
-          <Calendar size={15} color="#00d2ff" />
-          <span>Daily 1S Datasets</span>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('dashboard')}
-        >
-          <Bot size={15} color="#f59e0b" />
-          <span>AI Macro Assist</span>
-        </button>
-
-        {/* SECTION 4: SYSTEM & ADMINISTRATION */}
-        <div className="nav-section-title" style={{ marginTop: '12px' }}>SYSTEM & ADMINISTRATION</div>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('dashboard')}
-        >
-          <Terminal size={15} color="#10b981" />
-          <span>Live Terminal</span>
-        </button>
-
-        <button
-          className="nav-link-btn"
-          onClick={() => onNavigate('dashboard')}
-        >
-          <ShieldAlert size={15} color="#f59e0b" />
-          <span>Sandbox Terminal</span>
-        </button>
-
-        {/* Admin Navigation Menus */}
+        {/* SECTION 3: CONTROL PLANE (Admins Only) */}
         {isAdmin && (
           <>
+            <div className="nav-section-title" style={{ marginTop: '10px' }}>
+              <span>CONTROL PLANE</span>
+            </div>
+
+            {/* 8. Traders Directory */}
             <button
-              id="nav-admin-traders"
+              id="nav-traders-directory"
               className={`nav-link-btn ${currentView === 'traders' ? 'active' : ''}`}
               onClick={() => onNavigate('traders')}
+              title="Multi-Trader Accounts, Balance Adjustments & Risk Controls"
             >
-              <Users size={15} color="#38bdf8" />
-              <span style={{ flex: 1 }}>Traders</span>
-              <span style={{ fontSize: '0.62rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '1px 5px', borderRadius: '4px' }}>
+              <Users size={16} color={currentView === 'traders' ? '#818cf8' : '#94a3b8'} />
+              <span style={{ flex: 1 }}>Traders Directory</span>
+              <span style={{ fontSize: '0.62rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                 ADMIN
               </span>
             </button>
 
+            {/* 9. Admin Gateway */}
             <button
-              id="nav-admin-trades"
-              className={`nav-link-btn ${currentView === 'trades' ? 'active' : ''}`}
-              onClick={() => onNavigate('trades')}
-            >
-              <Receipt size={15} color="#c084fc" />
-              <span>Trade Controls</span>
-            </button>
-
-            <button
-              className="nav-link-btn"
-              onClick={() => onNavigate('traders')}
-            >
-              <Sliders size={15} color="#eab308" />
-              <span>Broker Masters</span>
-            </button>
-
-            <button
-              className="nav-link-btn"
-              onClick={() => onNavigate('trades')}
-            >
-              <Share2 size={15} color="#ec4899" />
-              <span>Postback Logs</span>
-            </button>
-
-            <button
-              className="nav-link-btn"
-              onClick={() => onNavigate('docs')}
-            >
-              <Globe size={15} color="#3b82f6" />
-              <span>Endpoints & Webhooks</span>
-            </button>
-
-            <button
-              id="nav-admin-portal-login"
+              id="nav-admin-gateway"
               className={`nav-link-btn ${currentView === 'admin_login' ? 'active' : ''}`}
               onClick={() => onNavigate('admin_login')}
+              title="Dedicated Admin Portal Login Screen"
             >
-              <ShieldCheck size={15} color="#38bdf8" />
-              <span style={{ flex: 1, color: '#38bdf8' }}>Admin Login Portal</span>
-              <span style={{ fontSize: '0.62rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '1px 5px', borderRadius: '4px' }}>
+              <ShieldCheck size={16} color={currentView === 'admin_login' ? '#38bdf8' : '#94a3b8'} />
+              <span style={{ flex: 1, color: currentView === 'admin_login' ? '#38bdf8' : '#8e9bb0' }}>Admin Gateway</span>
+              <span style={{ fontSize: '0.62rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
                 AUTH
               </span>
             </button>
@@ -330,23 +258,23 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Demo Account Switcher Dropdown (If toggled) */}
+      {/* Account Switcher Modal (If open) */}
       {showUserDropdown && (
         <div
           style={{
             position: 'absolute',
-            bottom: '72px',
-            left: '10px',
-            right: '10px',
-            background: '#111520',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            borderRadius: '10px',
+            bottom: '78px',
+            left: '12px',
+            right: '12px',
+            background: '#0d1017',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '12px',
             padding: '6px',
-            boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.75)',
+            boxShadow: '0 -12px 36px rgba(0, 0, 0, 0.85)',
             zIndex: 100,
           }}
         >
-          <div style={{ fontSize: '0.67rem', fontWeight: 700, color: '#94a3b8', padding: '6px 8px', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', padding: '6px 8px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             SWITCH SANDBOX ACCOUNT
           </div>
           {demoAccounts.map((acc) => (
@@ -361,21 +289,31 @@ export default function Sidebar({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '7px 8px',
-                borderRadius: '6px',
+                padding: '8px 10px',
+                borderRadius: '8px',
                 border: 'none',
-                background: user?.dhan_client_id === acc.clientId ? 'rgba(16, 185, 129, 0.18)' : 'transparent',
-                color: user?.dhan_client_id === acc.clientId ? '#10b981' : '#e2e8f0',
-                fontSize: '0.78rem',
+                background: user?.dhan_client_id === acc.clientId ? 'rgba(99, 102, 241, 0.16)' : 'transparent',
+                color: user?.dhan_client_id === acc.clientId ? '#ffffff' : '#94a3b8',
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 textAlign: 'left',
+                transition: 'background 0.15s ease',
               }}
             >
               <div>
-                <div style={{ fontWeight: 600 }}>{acc.name}</div>
+                <div style={{ fontWeight: 600, color: user?.dhan_client_id === acc.clientId ? '#ffffff' : '#cbd5e1' }}>{acc.name}</div>
                 <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'var(--font-mono)' }}>{acc.clientId}</div>
               </div>
-              <span className={acc.role === 'Admin' ? 'badge-cyan' : 'badge-emerald'} style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+              <span
+                style={{
+                  fontSize: '0.62rem',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: acc.role === 'Admin' ? 'rgba(99, 102, 241, 0.18)' : 'rgba(16, 185, 129, 0.18)',
+                  color: acc.role === 'Admin' ? '#818cf8' : '#34d399',
+                  fontWeight: 700,
+                }}
+              >
                 {acc.role}
               </span>
             </button>
@@ -383,26 +321,27 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Bottom Profile Card (Matching Screenshot exactly: Purple Avatar, Name, Email, Red Logout) */}
+      {/* Antigravity Glassmorphic User Profile Card */}
       <div
-        id="sidebar-bottom-user-card"
+        id="sidebar-user-card"
         style={{
-          padding: '10px 14px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.07)',
-          background: 'rgba(0, 0, 0, 0.45)',
+          margin: '12px',
+          padding: '10px 12px',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(14, 18, 27, 0.65)',
+          backdropFilter: 'blur(16px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '8px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
         }}
       >
-        {/* User Profile trigger area */}
+        {/* Profile trigger */}
         <div
-          id="sidebar-user-profile-trigger"
           onClick={() => {
-            if (onOpenProfile) {
-              onOpenProfile();
-            }
+            if (onOpenProfile) onOpenProfile();
           }}
           style={{
             display: 'flex',
@@ -412,33 +351,32 @@ export default function Sidebar({
             cursor: 'pointer',
             flex: 1,
           }}
-          title="Click to view & edit Profile"
+          title="Click to view Marmot profile & Dhan credentials"
         >
-          {/* Purple Square Avatar */}
+          {/* Cosmic Avatar with Gradient Glow */}
           <div
             style={{
-              width: '34px',
-              height: '34px',
+              width: '32px',
+              height: '32px',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
               color: '#ffffff',
-              fontSize: '0.84rem',
+              fontSize: '0.82rem',
               fontWeight: 800,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 12px rgba(124, 58, 237, 0.4)',
+              boxShadow: '0 0 12px rgba(99, 102, 241, 0.4)',
               flexShrink: 0,
             }}
           >
             {userInitial}
           </div>
 
-          {/* Name & Email */}
           <div style={{ overflow: 'hidden' }}>
             <div
               style={{
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 fontWeight: 700,
                 color: '#ffffff',
                 whiteSpace: 'nowrap',
@@ -450,7 +388,7 @@ export default function Sidebar({
             </div>
             <div
               style={{
-                fontSize: '0.68rem',
+                fontSize: '0.67rem',
                 color: '#64748b',
                 whiteSpace: 'nowrap',
                 textOverflow: 'ellipsis',
@@ -458,20 +396,38 @@ export default function Sidebar({
                 fontFamily: 'var(--font-mono)',
               }}
             >
-              {truncatedEmail}
+              ID: {clientId}
             </div>
           </div>
         </div>
 
-        {/* Red Logout Button */}
+        {/* Account Switcher Trigger */}
+        <button
+          onClick={() => setShowUserDropdown(!showUserDropdown)}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#64748b',
+            padding: '4px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="Switch Account"
+        >
+          <ChevronDown size={14} />
+        </button>
+
+        {/* Sign Out Action */}
         <button
           id="sidebar-logout-btn"
           onClick={onLogout}
           style={{
             background: 'transparent',
             border: 'none',
-            color: '#ef4444',
-            padding: '6px',
+            color: '#f43f5e',
+            padding: '5px',
             borderRadius: '6px',
             cursor: 'pointer',
             display: 'flex',
@@ -481,7 +437,7 @@ export default function Sidebar({
           }}
           title="Sign Out"
         >
-          <LogOut size={16} color="#ef4444" />
+          <LogOut size={15} color="#f43f5e" />
         </button>
       </div>
     </aside>
