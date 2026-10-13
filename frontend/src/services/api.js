@@ -13,6 +13,7 @@ async function request(url, options = {}) {
 
   const headers = {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(clientId ? { 'client-id': clientId } : {}),
     ...(accessToken ? { 'access-token': accessToken } : {}),
