@@ -516,21 +516,35 @@ class FyersFeedService:
         }
         res_key = res_map.get(str(resolution).strip().lower(), '5')
         
-        fyers_sym = symbol
-        clean_upper = str(symbol).strip().upper()
-        if 'NIFTY 50' in clean_upper or clean_upper == 'NIFTY50':
-            fyers_sym = 'NSE:NIFTY50-INDEX'
-        elif 'BANK' in clean_upper:
-            fyers_sym = 'NSE:NIFTYBANK-INDEX'
-        elif 'FIN' in clean_upper:
-            fyers_sym = 'NSE:FINNIFTY-INDEX'
-        elif 'MID' in clean_upper:
-            fyers_sym = 'NSE:MIDCPNIFTY-INDEX'
-        elif 'SENSEX' in clean_upper:
-            fyers_sym = 'BSE:SENSEX-INDEX'
+        raw_symbol = str(symbol).strip()
+        clean_upper = raw_symbol.upper()
+        is_option = ('CE' in clean_upper or 'PE' in clean_upper)
 
+        # 1. Resolve Broker Symbol
+        if is_option:
+            # Keep broker option contract intact
+            if clean_upper.startswith('NSE:') or clean_upper.startswith('BSE:'):
+                fyers_sym = raw_symbol
+            else:
+                prefix = 'BSE:' if 'SENSEX' in clean_upper else 'NSE:'
+                fyers_sym = f"{prefix}{clean_upper.replace(' ', '')}"
+        else:
+            # Underlying Index resolution
+            if clean_upper.startswith('NSE:') or clean_upper.startswith('BSE:'):
+                fyers_sym = raw_symbol
+            elif 'BANK' in clean_upper:
+                fyers_sym = 'NSE:NIFTYBANK-INDEX'
+            elif 'FIN' in clean_upper:
+                fyers_sym = 'NSE:FINNIFTY-INDEX'
+            elif 'MID' in clean_upper:
+                fyers_sym = 'NSE:MIDCPNIFTY-INDEX'
+            elif 'SENSEX' in clean_upper:
+                fyers_sym = 'BSE:SENSEX-INDEX'
+            else:
+                fyers_sym = 'NSE:NIFTY50-INDEX'
+
+        # 2. Time Window Calculation
         now_ts = int(time.time())
-        to_ts = range_to if range_to else now_ts
         step_seconds = {
             '1': 60,
             '3': 180,
@@ -540,9 +554,13 @@ class FyersFeedService:
             '60': 3600,
             'D': 86400,
         }.get(res_key, 300)
-        from_ts = range_from if range_from else (to_ts - (step_seconds * 120))
 
-        # Real Fyers Data API v3 History
+        to_ts = range_to if (range_to and range_to > 0) else now_ts
+        from_ts = range_from if (range_from and range_from > 0) else (to_ts - (step_seconds * 120))
+        if from_ts >= to_ts:
+            from_ts = to_ts - (step_seconds * 120)
+
+        # 3. Real Fyers Data API v3 History (if configured and live token present)
         if self.is_fyers_configured() and self.access_token:
             url = f"{self.base_url}/history?symbol={fyers_sym}&resolution={res_key}&date_format=1&range_from={from_ts}&range_to={to_ts}&cont_flag=1"
             try:
@@ -571,50 +589,83 @@ class FyersFeedService:
             except Exception:
                 pass
 
-        # Realistic Fallback Generator matching actual spot/premium
-        base_price = 22720.0
-        is_option = ('CE' in clean_upper or 'PE' in clean_upper)
-        if is_option:
-            base_price = 25.5 if 'CE' in clean_upper else 2.1
-        elif 'BANK' in clean_upper:
-            base_price = 55480.0
-        elif 'FIN' in clean_upper:
-            base_price = 25230.0
-        elif 'MID' in clean_upper:
-            base_price = 13240.0
-        elif 'SENSEX' in clean_upper:
-            base_price = 73030.0
+        # 4. Realistic Fallback Generator (Contiguous, Deterministic across windows)
+        import re
+        import hashlib
+        import math
 
+        base_price = 22720.0
         if not is_option:
+            if 'BANK' in clean_upper:
+                base_price = 55480.0
+            elif 'FIN' in clean_upper:
+                base_price = 25230.0
+            elif 'MID' in clean_upper:
+                base_price = 13240.0
+            elif 'SENSEX' in clean_upper:
+                base_price = 73030.0
+            else:
+                base_price = 22720.0
+
             try:
                 cached_quote = self.get_index_quote(clean_upper)
                 if cached_quote and cached_quote.get('ltp', 0) > 0:
                     base_price = float(cached_quote['ltp'])
             except Exception:
                 pass
+        else:
+            # Option pricing estimate: Intrinsic + time decay
+            underlying_spot = 22720.0
+            if 'BANK' in clean_upper:
+                underlying_spot = 55480.0
+            elif 'FIN' in clean_upper:
+                underlying_spot = 25230.0
+            elif 'MID' in clean_upper:
+                underlying_spot = 13240.0
+            elif 'SENSEX' in clean_upper:
+                underlying_spot = 73030.0
+
+            opt_match = re.search(r'(\d{4,6})\s*(CE|PE)', clean_upper)
+            if opt_match:
+                strike_val = float(opt_match.group(1))
+                opt_kind = opt_match.group(2)
+                if opt_kind == 'CE':
+                    intrinsic = max(0.0, underlying_spot - strike_val)
+                    base_price = max(1.5, intrinsic + 28.5)
+                else:
+                    intrinsic = max(0.0, strike_val - underlying_spot)
+                    base_price = max(1.5, intrinsic + 24.5)
+            else:
+                base_price = 35.5 if 'CE' in clean_upper else 22.0
+
+        volatility = 0.0010 if not is_option else 0.028
+        bar_count = max(10, min(500, int((to_ts - from_ts) // step_seconds)))
+        start_aligned = (from_ts // step_seconds) * step_seconds
 
         candles = []
-        volatility = 0.0012 if not is_option else 0.035
-        curr_price = base_price * (1.0 - (0.006 if not is_option else 0.12))
-        start_time = (from_ts // step_seconds) * step_seconds
-        
-        # Seed for smooth series
-        rng = random.Random(abs(hash(f"{fyers_sym}_{res_key}_{start_time}")) % 100000)
+        for i in range(bar_count):
+            t = start_aligned + (i * step_seconds)
+            # Deterministic hash seed based on symbol, timestamp bucket, and step
+            bar_idx = t // step_seconds
+            hash_key = f"{fyers_sym}_{bar_idx}_{step_seconds}".encode('utf-8')
+            h_int = int(hashlib.md5(hash_key).hexdigest()[:8], 16)
 
-        for i in range(120):
-            t = start_time + (i * step_seconds)
-            wave = math.sin(i / 14.0) * volatility * curr_price * 0.4
-            noise = (rng.random() - 0.48) * volatility * curr_price
-            next_close = max(0.5, curr_price + wave + noise)
-            
-            c_open = curr_price
-            c_close = next_close
+            wave = math.sin(bar_idx / 18.0) * (base_price * volatility * 0.8)
+            subwave = math.cos(bar_idx / 5.5) * (base_price * volatility * 0.4)
+            noise = (((h_int % 1000) / 500.0) - 1.0) * (base_price * volatility * 0.5)
+
+            c_close = max(0.5, base_price + wave + subwave + noise)
+            open_shift = ((((h_int >> 4) % 1000) / 500.0) - 1.0) * (base_price * volatility * 0.35)
+            c_open = max(0.4, c_close + open_shift)
+
             spread = abs(c_close - c_open)
-            c_high = max(c_open, c_close) + (rng.random() * spread * 0.7) + (curr_price * volatility * 0.2)
-            c_low = min(c_open, c_close) - (rng.random() * spread * 0.7) - (curr_price * volatility * 0.2)
-            c_low = max(0.05, c_low)
-            volume = int(rng.randint(12000, 68000) * (1.4 if abs(c_close - c_open) > spread * 0.6 else 1.0))
-            
+            high_ext = (((h_int >> 8) % 500) / 500.0) * (spread * 0.8 + base_price * volatility * 0.25)
+            low_ext = (((h_int >> 12) % 500) / 500.0) * (spread * 0.8 + base_price * volatility * 0.25)
+
+            c_high = max(c_open, c_close) + high_ext
+            c_low = max(0.05, min(c_open, c_close) - low_ext)
+            volume = int(12000 + ((h_int >> 2) % 48000))
+
             candles.append({
                 'time': t,
                 'open': round(c_open, 2),
@@ -623,12 +674,6 @@ class FyersFeedService:
                 'close': round(c_close, 2),
                 'volume': volume
             })
-            curr_price = c_close
-
-        if candles:
-            candles[-1]['close'] = round(base_price, 2)
-            candles[-1]['high'] = max(candles[-1]['high'], round(base_price, 2))
-            candles[-1]['low'] = min(candles[-1]['low'], round(base_price, 2))
 
         return {
             's': 'ok',

@@ -79,6 +79,10 @@ export default function ChartsPage({
   const chartInstanceRef = useRef(null);
   const mainSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
+  const allCandlesRef = useRef([]);
+  const isLoadingOlderRef = useRef(false);
+  const hasMoreOlderRef = useRef(true);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 
   // Determine Underlying Index Key & Specs
   let baseIndexKey = 'NIFTY50';
@@ -289,17 +293,27 @@ export default function ChartsPage({
       volumeSeriesRef.current = volumeSeries;
     }
 
-    // 4. Fetch Real Historical OHLCV Data from Backend
+    // 4. Fetch Real Historical OHLCV Data from Backend (Index or Option)
     setIsLoading(true);
+    allCandlesRef.current = [];
+    hasMoreOlderRef.current = true;
+    isLoadingOlderRef.current = false;
+
+    // Prioritize broker trading_symbol for options if available
+    const resolvedOptionSymbol = currentOptionContract?.trading_symbol || (
+      `${baseIndexKey}${selectedOptionExpiry.replace(/-/g, '').slice(0, 5)}${selectedOptionStrike}${selectedOptionType}`
+    );
     const querySymbol = isViewingIndex
       ? selectedSymbol
-      : `${baseIndexKey} ${selectedOptionExpiry.split(' ')[0]} ${selectedOptionStrike} ${selectedOptionType}`;
+      : resolvedOptionSymbol;
 
     api.fyers
       .getHistory(querySymbol, timeframe)
       .then((res) => {
         if (res && Array.isArray(res.candles) && res.candles.length > 0) {
           const sorted = [...res.candles].sort((a, b) => a.time - b.time);
+          allCandlesRef.current = sorted;
+          window.__anvilChartCandlesCount = sorted.length;
 
           if (chartType === 'candles') {
             mainSeries.setData(
@@ -341,6 +355,118 @@ export default function ChartsPage({
       .finally(() => {
         setIsLoading(false);
       });
+
+    // 4b. Backward Infinite Scroll History Fetcher
+    const loadOlderCandles = () => {
+      if (isLoadingOlderRef.current || !hasMoreOlderRef.current || allCandlesRef.current.length === 0) {
+        return;
+      }
+      const oldestTs = allCandlesRef.current[0].time;
+      const tfMap = {
+        '1m': 60,
+        '3m': 180,
+        '5m': 300,
+        '15m': 900,
+        '30m': 1800,
+        '1h': 3600,
+        '60m': 3600,
+        '1D': 86400,
+        '1d': 86400,
+      };
+      const stepSec = tfMap[timeframe] || 300;
+      const toTs = oldestTs - 1;
+      const fromTs = oldestTs - (stepSec * 120);
+
+      isLoadingOlderRef.current = true;
+      setIsLoadingOlder(true);
+
+      api.fyers
+        .getHistory(querySymbol, timeframe, fromTs, toTs)
+        .then((res) => {
+          if (!res || !Array.isArray(res.candles) || res.candles.length === 0) {
+            hasMoreOlderRef.current = false;
+            return;
+          }
+
+          const olderCandles = res.candles
+            .filter((c) => c.time < oldestTs)
+            .sort((a, b) => a.time - b.time);
+
+          if (olderCandles.length === 0) {
+            hasMoreOlderRef.current = false;
+            return;
+          }
+
+          // Capture existing visible range BEFORE updating series data
+          const prevLogicalRange = chart.timeScale().getVisibleLogicalRange();
+          const barsAdded = olderCandles.length;
+
+          const merged = [...olderCandles, ...allCandlesRef.current];
+          allCandlesRef.current = merged;
+          window.__anvilChartCandlesCount = merged.length;
+
+          if (chartType === 'candles') {
+            mainSeries.setData(
+              merged.map((c) => ({
+                time: c.time,
+                open: Number(c.open),
+                high: Number(c.high),
+                low: Number(c.low),
+                close: Number(c.close),
+              }))
+            );
+          } else {
+            mainSeries.setData(
+              merged.map((c) => ({
+                time: c.time,
+                value: Number(c.close),
+              }))
+            );
+          }
+
+          if (volumeSeries) {
+            volumeSeries.setData(
+              merged.map((c) => ({
+                time: c.time,
+                value: Number(c.volume || 0),
+                color: c.close >= c.open ? 'rgba(16, 185, 129, 0.35)' : 'rgba(244, 63, 94, 0.35)',
+              }))
+            );
+          }
+
+          // Compensate visible range to keep view perfectly steady when older bars prepend
+          if (prevLogicalRange) {
+            chart.timeScale().setVisibleLogicalRange({
+              from: prevLogicalRange.from + barsAdded,
+              to: prevLogicalRange.to + barsAdded,
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to fetch older historical chunk:', err);
+        })
+        .finally(() => {
+          setTimeout(() => {
+            isLoadingOlderRef.current = false;
+            setIsLoadingOlder(false);
+          }, 300);
+        });
+    };
+
+    // Logical Range Subscriber (triggers when panning/scrolling back near the left edge)
+    const handleLogicalRangeChange = (logicalRange) => {
+      if (!logicalRange) return;
+      if (
+        logicalRange.from < 15 &&
+        !isLoadingOlderRef.current &&
+        hasMoreOlderRef.current &&
+        allCandlesRef.current.length > 0
+      ) {
+        loadOlderCandles();
+      }
+    };
+
+    chart.timeScale().subscribeVisibleLogicalRangeChange(handleLogicalRangeChange);
 
     // 5. Crosshair hover subscription for legend update
     chart.subscribeCrosshairMove((param) => {
@@ -409,6 +535,7 @@ export default function ChartsPage({
     resizeObserver.observe(container);
 
     return () => {
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleLogicalRangeChange);
       resizeObserver.disconnect();
       chart.remove();
       chartInstanceRef.current = null;
@@ -419,12 +546,47 @@ export default function ChartsPage({
     selectedOptionStrike,
     selectedOptionType,
     selectedOptionExpiry,
+    currentOptionContract?.trading_symbol,
     timeframe,
     chartType,
     showVolume,
     activePositions.length,
     pendingOrders.length,
   ]);
+
+  // Live tick updates into the active candlestick
+  useEffect(() => {
+    if (!mainSeriesRef.current || !allCandlesRef.current.length || !ltp) return;
+    const last = allCandlesRef.current[allCandlesRef.current.length - 1];
+    if (!last) return;
+
+    const updatedClose = Number(ltp);
+    const updatedHigh = Math.max(Number(last.high || last.close || updatedClose), updatedClose);
+    const updatedLow = Math.min(Number(last.low || last.close || updatedClose), updatedClose);
+
+    const updatedBar = {
+      ...last,
+      high: updatedHigh,
+      low: updatedLow,
+      close: updatedClose,
+    };
+    allCandlesRef.current[allCandlesRef.current.length - 1] = updatedBar;
+
+    if (chartType === 'candles') {
+      mainSeriesRef.current.update({
+        time: updatedBar.time,
+        open: Number(updatedBar.open),
+        high: Number(updatedBar.high),
+        low: Number(updatedBar.low),
+        close: Number(updatedBar.close),
+      });
+    } else {
+      mainSeriesRef.current.update({
+        time: updatedBar.time,
+        value: updatedClose,
+      });
+    }
+  }, [ltp, chartType]);
 
   // Handle Square Off Position
   const handleExitPosition = async (pos) => {
@@ -885,6 +1047,36 @@ export default function ChartsPage({
               >
                 <RefreshCw size={16} className="animate-spin" />
                 <span>Loading Historical Bars...</span>
+              </div>
+            )}
+
+            {isLoadingOlder && (
+              <div
+                id="loading-older-candles-badge"
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(15, 23, 42, 0.92)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(6, 182, 212, 0.45)',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.6)',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#38bdf8',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)',
+                  zIndex: 25,
+                  pointerEvents: 'none',
+                }}
+              >
+                <RefreshCw size={12} className="animate-spin" />
+                <span>Fetching Older Historical Data...</span>
               </div>
             )}
           </div>
