@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Radio,
-  FileCode,
   Sliders,
   Power
 } from 'lucide-react';
@@ -29,7 +28,6 @@ export default function MarmotConnectPage({
   const [showSecret, setShowSecret] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
-  const [activeSnippetTab, setActiveSnippetTab] = useState('env'); // 'env' | 'python' | 'json'
 
   // Postback webhook state
   const [postbackUrl, setPostbackUrl] = useState('');
@@ -165,52 +163,7 @@ export default function MarmotConnectPage({
     }
   };
 
-  // Code snippets
-  const marmotEnvSnippet = `# Marmot Trading Bot Configuration
-# Connect MARMOT Algo Strategy Engine to ANVIL Dhan v2 Sandbox Wire
-DHAN_CLIENT_ID="${clientId}"
-DHAN_ACCESS_TOKEN="${accessToken}"
-DHAN_BASE_URL="${brokerBaseUrl}"
-DHAN_ENV="SANDBOX"
-ANVIL_CLIENT_SECRET="${clientSecret}"
-`;
 
-  const pythonSnippet = `from dhanhq import dhanhq
-
-# Initialize DhanHQ Client pointing to ANVIL Mock Broker Wire
-dhan = dhanhq(
-    client_id="${clientId}",
-    access_token="${accessToken}"
-)
-# Override base URL to route orders through ANVIL Sandbox
-dhan.base_url = "${brokerBaseUrl}"
-
-# Place Intraday Test Order
-order_response = dhan.place_order(
-    security_id="49546",
-    exchange_segment=dhan.NSE_FNO,
-    transaction_type=dhan.BUY,
-    quantity=75,
-    order_type=dhan.MARKET,
-    product_type=dhan.INTRADAY,
-    price=0,
-    tag="marmot_live_test"
-)
-print("Order Status:", order_response)
-`;
-
-  const marmotJsonConfig = JSON.stringify({
-    broker: "DHAN_V2",
-    environment: "SANDBOX",
-    base_url: brokerBaseUrl,
-    client_id: clientId,
-    client_secret: clientSecret,
-    access_token: accessToken,
-    execution_mode: "AUTO",
-    default_exchange: "NSE_FNO",
-    postback_webhook_url: postbackUrl || `${brokerBaseUrl}/api/webhook/postback/`,
-    kill_switch_active: killSwitchActive,
-  }, null, 2);
 
   return (
     <div id="marmot-connect-page" style={{ padding: '24px 32px', width: '100%', boxSizing: 'border-box' }}>
@@ -670,126 +623,7 @@ print("Order Status:", order_response)
         )}
       </div>
 
-      {/* SECTION 3: Code Integration Snippets */}
-      <div
-        style={{
-          background: 'rgba(12, 17, 29, 0.75)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '12px',
-          padding: '20px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FileCode size={18} color="#fbbf24" />
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>
-              Algorithmic Integration Snippets
-            </h3>
-          </div>
 
-          {/* Snippet Tabs */}
-          <div style={{ display: 'flex', gap: '6px', background: 'rgba(0, 0, 0, 0.4)', padding: '3px', borderRadius: '8px' }}>
-            <button
-              onClick={() => setActiveSnippetTab('env')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                background: activeSnippetTab === 'env' ? '#38bdf8' : 'transparent',
-                color: activeSnippetTab === 'env' ? '#090d16' : 'var(--text-secondary)',
-              }}
-            >
-              Marmot .env Block
-            </button>
-            <button
-              onClick={() => setActiveSnippetTab('python')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                background: activeSnippetTab === 'python' ? '#38bdf8' : 'transparent',
-                color: activeSnippetTab === 'python' ? '#090d16' : 'var(--text-secondary)',
-              }}
-            >
-              Python DhanHQ SDK
-            </button>
-            <button
-              onClick={() => setActiveSnippetTab('json')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '6px',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                background: activeSnippetTab === 'json' ? '#38bdf8' : 'transparent',
-                color: activeSnippetTab === 'json' ? '#090d16' : 'var(--text-secondary)',
-              }}
-            >
-              Full JSON Config
-            </button>
-          </div>
-        </div>
-
-        {/* Snippet Display */}
-        <div style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 2 }}>
-            <button
-              id="copy-active-snippet-btn"
-              onClick={() => {
-                const text =
-                  activeSnippetTab === 'env'
-                    ? marmotEnvSnippet
-                    : activeSnippetTab === 'python'
-                    ? pythonSnippet
-                    : marmotJsonConfig;
-                copyToClipboard(text, activeSnippetTab);
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                cursor: 'pointer',
-              }}
-            >
-              {copiedKey === activeSnippetTab ? <Check size={13} /> : <Copy size={13} />}
-              <span>{copiedKey === activeSnippetTab ? 'Copied Snippet!' : 'Copy Snippet'}</span>
-            </button>
-          </div>
-
-          <pre
-            style={{
-              margin: 0,
-              padding: '16px',
-              borderRadius: '8px',
-              background: '#090d16',
-              border: '1px solid var(--border-subtle)',
-              color: '#cbd5e1',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.82rem',
-              lineHeight: 1.6,
-              overflowX: 'auto',
-            }}
-          >
-            {activeSnippetTab === 'env' && marmotEnvSnippet}
-            {activeSnippetTab === 'python' && pythonSnippet}
-            {activeSnippetTab === 'json' && marmotJsonConfig}
-          </pre>
-        </div>
-      </div>
     </div>
   );
 }
