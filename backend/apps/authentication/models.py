@@ -36,7 +36,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     # Dhan Broker Protocol Identity
     dhan_client_id = models.CharField(max_length=20, unique=True, db_index=True)
+    client_secret = models.CharField(max_length=64, blank=True, default='')
     access_token = models.CharField(max_length=64, unique=True, db_index=True)
+    kill_switch_active = models.BooleanField(default=False)
     
     # Gmail OTP Verification
     otp_code = models.CharField(max_length=6, blank=True, null=True)
@@ -59,6 +61,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.email} [Dhan: {self.dhan_client_id}]"
 
+    def save(self, *args, **kwargs):
+        if not self.dhan_client_id:
+            self.dhan_client_id = self.generate_new_client_id()
+        if not self.client_secret:
+            self.client_secret = self.generate_new_client_secret()
+        if not self.access_token:
+            self.access_token = self.generate_new_access_token()
+        super().save(*args, **kwargs)
+
     @classmethod
     def generate_new_client_id(cls):
         """Generates a unique 10-digit Dhan style numeric client ID."""
@@ -68,6 +79,13 @@ class User(AbstractBaseUser, PermissionsMixin):
             client_id = str(num)
             if not cls.objects.filter(dhan_client_id=client_id).exists():
                 return client_id
+
+    @classmethod
+    def generate_new_client_secret(cls):
+        """Generates a secure high-entropy sandbox client secret for API integration."""
+        token_chars = string.ascii_letters + string.digits
+        random_suffix = ''.join(secrets.choice(token_chars) for _ in range(32))
+        return f"sec_anvil_{random_suffix}"
 
     @classmethod
     def generate_new_access_token(cls):

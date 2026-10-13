@@ -11,6 +11,9 @@ urlpatterns = [
     # Internal Web Management & Telemetry APIs
     path('api/auth/', include('apps.authentication.urls')),
     path('api/accounts/', include('apps.accounts.urls')),
+    path('api/admin-portal/', include('apps.core.admin_urls')),
+    path('api/fyers/', include('apps.fyers_feed.urls')),
+    path('api/core/', include('apps.fyers_feed.urls')),
     path('api/v2/', include('apps.dhan_v2.urls')),
 
     # 100% Dhan v2 Standard Wire API Route (for official Dhan Python SDK / Go SDK / bots)

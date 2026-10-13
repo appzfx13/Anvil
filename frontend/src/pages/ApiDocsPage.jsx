@@ -4,6 +4,61 @@ import { api } from '../services/api';
 
 const ENDPOINTS = [
   {
+    id: 'post-token',
+    method: 'POST',
+    path: '/v2/token',
+    category: 'Authentication',
+    title: 'Marmot Permanent Token Exchange',
+    description: 'Authenticates MARMOT terminal using App ID (Client ID) and Client Secret, returning a permanent Dhan sandbox access token for subsequent API calls.',
+    requestBody: {
+      client_id: '1000000001',
+      client_secret: 'sec_anvil_live_sandbox_secret',
+    },
+    responseExample: {
+      status: 'success',
+      dhanClientId: '1000000001',
+      accessToken: 'dhn_sec_sandbox_demo_token_2026',
+      tokenType: 'Bearer',
+      expiresIn: 315360000,
+      killSwitchActive: false,
+      message: 'Permanent sandbox token verified successfully',
+    },
+  },
+  {
+    id: 'post-killswitch',
+    method: 'POST',
+    path: '/v2/killswitch',
+    category: 'Risk Management',
+    title: 'Dhan Kill Switch (Emergency Cancel & Square Off)',
+    description: 'Immediately cancels all pending orders, executes market square-offs for all open derivative positions, locks the account against new incoming orders, and fires Dhan postbacks.',
+    requestBody: {
+      killSwitchStatus: 'ACTIVATE',
+    },
+    responseExample: {
+      status: 'success',
+      dhanClientId: '1000000001',
+      killSwitchStatus: 'ACTIVATED',
+      killSwitchActive: true,
+      cancelledOrdersCount: 2,
+      squaredPositionsCount: 1,
+      message: 'Kill switch activated. 2 pending orders cancelled, 1 open positions squared off. Trading locked.',
+    },
+  },
+  {
+    id: 'get-killswitch',
+    method: 'GET',
+    path: '/v2/killswitch',
+    category: 'Risk Management',
+    title: 'Query Kill Switch Status',
+    description: 'Queries whether the Kill Switch is currently ACTIVATED or DEACTIVATED for the client account.',
+    requestBody: null,
+    responseExample: {
+      dhanClientId: '1000000001',
+      killSwitchStatus: 'ACTIVATED',
+      killSwitchActive: true,
+    },
+  },
+  {
     id: 'post-order',
     method: 'POST',
     path: '/v2/orders',
@@ -107,6 +162,36 @@ const ENDPOINTS = [
       strikes: 'Array(21)',
     },
   },
+  {
+    id: 'postback-webhook',
+    method: 'POST',
+    path: '/api/accounts/test-postback/',
+    category: 'Webhooks',
+    title: 'Dhan v2 Execution Postback Webhook',
+    description: 'ANVIL dispatches this exact Dhan v2 webhook payload to your MARMOT webhook endpoint on every order execution state change.',
+    requestBody: null,
+    responseExample: {
+      dhanClientId: '1000000001',
+      orderId: 'DHN17918686965659771',
+      correlationId: 'quant_bot_leg1',
+      orderStatus: 'TRADED',
+      transactionType: 'BUY',
+      exchangeSegment: 'NSE_FNO',
+      productType: 'INTRADAY',
+      orderType: 'MARKET',
+      validity: 'DAY',
+      tradingSymbol: 'NIFTY26OCT25200CE',
+      securityId: '49081',
+      quantity: 25,
+      price: 145.5,
+      averagePrice: 145.5,
+      filledQty: 25,
+      exchangeOrderId: 'EXDHN17918686965659771',
+      createTime: '2026-10-13 10:45:00',
+      updateTime: '2026-10-13 10:45:00',
+      eventType: 'ORDER_TRADED',
+    },
+  },
 ];
 
 export default function ApiDocsPage({ user, addToast }) {
@@ -119,19 +204,103 @@ export default function ApiDocsPage({ user, addToast }) {
   const clientId = user?.dhan_client_id || localStorage.getItem('anvil_client_id') || '1000000001';
   const token = user?.access_token || localStorage.getItem('anvil_access_token') || 'dhn_sec_sandbox_demo_token_2026';
 
+  const brokerUrl = window.location.origin;
+  const clientSecret = user?.client_secret || 'sec_anvil_live_sandbox_secret';
+
   const generateSnippet = (ep) => {
+    if (ep.id === 'post-token') {
+      if (selectedLang === 'python') {
+        return `import requests
+
+# Exchange App ID (Client ID) & Client Secret for Permanent Token
+res = requests.post(
+    "${brokerUrl}/v2/token",
+    json={
+        "client_id": "${clientId}",
+        "client_secret": "${clientSecret}"
+    }
+)
+data = res.json()
+print("Permanent Token:", data["accessToken"])
+# Save data["accessToken"] to authenticate all subsequent Dhan API calls!`;
+      }
+      if (selectedLang === 'curl') {
+        return `curl -X POST "${brokerUrl}/v2/token" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "client_id": "${clientId}",
+    "client_secret": "${clientSecret}"
+  }'`;
+      }
+      if (selectedLang === 'go') {
+        return `// Exchange credentials in Go
+payload := map[string]string{
+    "client_id": "${clientId}",
+    "client_secret": "${clientSecret}",
+}
+body, _ := json.Marshal(payload)
+resp, err := http.Post("${brokerUrl}/v2/token", "application/json", bytes.NewBuffer(body))`;
+      }
+      return `fetch("${brokerUrl}/v2/token", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    client_id: "${clientId}",
+    client_secret: "${clientSecret}"
+  })
+}).then(r => r.json()).then(data => console.log("Permanent Token:", data.accessToken));`;
+    }
+
+    if (ep.id === 'post-killswitch' || ep.id === 'get-killswitch') {
+      if (selectedLang === 'python') {
+        return `import requests
+
+# 🚨 Dhan Kill Switch: Emergency Cancel & Square-Off
+res = requests.${ep.method.toLowerCase()}(
+    "${brokerUrl}${ep.path}",
+    headers={
+        "client-id": "${clientId}",
+        "access-token": "${token}",
+        "Content-Type": "application/json"
+    }${ep.requestBody ? `,\n    json=${JSON.stringify(ep.requestBody, null, 4)}` : ''}
+)
+print("Kill Switch Status:", res.json())`;
+      }
+      if (selectedLang === 'curl') {
+        return `curl -X ${ep.method} "${brokerUrl}${ep.path}" \\
+  -H "client-id: ${clientId}" \\
+  -H "access-token: ${token}" \\
+  -H "Content-Type: application/json"${ep.requestBody ? ` \\
+  -d '${JSON.stringify(ep.requestBody, null, 2)}'` : ''}`;
+      }
+      if (selectedLang === 'go') {
+        return `req, _ := http.NewRequest("${ep.method}", "${brokerUrl}${ep.path}", nil)
+req.Header.Set("client-id", "${clientId}")
+req.Header.Set("access-token", "${token}")
+resp, err := http.DefaultClient.Do(req)`;
+      }
+      return `fetch("${brokerUrl}${ep.path}", {
+  method: "${ep.method}",
+  headers: {
+    "client-id": "${clientId}",
+    "access-token": "${token}",
+    "Content-Type": "application/json"
+  }${ep.requestBody ? `,\n  body: JSON.stringify(${JSON.stringify(ep.requestBody, null, 2)})` : ''}
+}).then(r => r.json()).then(console.log);`;
+    }
+
     if (selectedLang === 'python') {
       return `from dhanhq import dhanhq
 
 dhan = dhanhq(client_id="${clientId}", access_token="${token}")
-dhan.base_url = "http://localhost:8088"
+dhan.base_url = "${brokerUrl}"
 
 # ${ep.title}
 ${ep.method === 'POST' ? `res = dhan.place_order(
-    security_id="${ep.requestBody?.securityId}",
+    security_id="${ep.requestBody?.securityId || '49081'}",
     exchange_segment=dhan.NSE_FNO,
-    transaction_type=dhan.${ep.requestBody?.transactionType},
-    quantity=${ep.requestBody?.quantity},
+    transaction_type=dhan.${ep.requestBody?.transactionType || 'BUY'},
+    quantity=${ep.requestBody?.quantity || 25},
     order_type=dhan.MARKET,
     product_type=dhan.INTRADAY,
     price=0
@@ -140,7 +309,7 @@ print(res)`;
     }
 
     if (selectedLang === 'curl') {
-      return `curl -X ${ep.method} "http://localhost:8088${ep.path}" \\
+      return `curl -X ${ep.method} "${brokerUrl}${ep.path}" \\
   -H "client-id: ${clientId}" \\
   -H "access-token: ${token}" \\
   -H "Content-Type: application/json"${ep.requestBody ? ` \\
@@ -149,13 +318,13 @@ print(res)`;
 
     if (selectedLang === 'go') {
       return `// Target ANVIL Gateway directly
-req, _ := http.NewRequest("${ep.method}", "http://localhost:8088${ep.path}", nil)
+req, _ := http.NewRequest("${ep.method}", "${brokerUrl}${ep.path}", nil)
 req.Header.Set("client-id", "${clientId}")
 req.Header.Set("access-token", "${token}")
 resp, err := http.DefaultClient.Do(req)`;
     }
 
-    return `fetch("http://localhost:8088${ep.path}", {
+    return `fetch("${brokerUrl}${ep.path}", {
   method: "${ep.method}",
   headers: {
     "client-id": "${clientId}",
@@ -170,7 +339,15 @@ resp, err := http.DefaultClient.Do(req)`;
     setTestResponse(null);
     try {
       let res;
-      if (selectedEndpoint.id === 'post-order') {
+      if (selectedEndpoint.id === 'post-token') {
+        res = await api.dhan.getToken(clientId, clientSecret);
+      } else if (selectedEndpoint.id === 'post-killswitch') {
+        res = await api.dhan.activateKillSwitch();
+      } else if (selectedEndpoint.id === 'get-killswitch') {
+        res = await api.dhan.getKillSwitch();
+      } else if (selectedEndpoint.id === 'postback-webhook') {
+        res = await api.account.testPostback();
+      } else if (selectedEndpoint.id === 'post-order') {
         res = await api.dhan.placeOrder(selectedEndpoint.requestBody);
       } else if (selectedEndpoint.id === 'get-orders') {
         res = await api.dhan.getOrders();

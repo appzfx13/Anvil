@@ -134,8 +134,21 @@ export default function OptionChainModal({
           )}
         </div>
 
-        {/* Option Chain Table */}
+        {/* Option Chain Table or Error Alert */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+          {chainData?.error ? (
+            <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+                <TrendingUp size={24} color="var(--warn-amber)" />
+              </div>
+              <h4 style={{ color: '#fef3c7', fontSize: '1.1rem', marginBottom: '8px', fontWeight: 700 }}>
+                Fyers Live Option Chain Feed Required
+              </h4>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', maxWidth: '520px', margin: '0 auto 16px', lineHeight: 1.5 }}>
+                {chainData.error}
+              </p>
+            </div>
+          ) : (
           <table className="trading-table" style={{ width: '100%' }}>
             <thead>
               <tr>
@@ -229,6 +242,7 @@ export default function OptionChainModal({
               ))}
             </tbody>
           </table>
+          )}
         </div>
       </div>
     </div>

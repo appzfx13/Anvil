@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -218,39 +217,35 @@ func startTickStreamer(hub *Hub, rdb *redis.Client) {
 
 	for range ticker.C {
 		for _, idx := range supportedIndices {
-			curr := prices[idx.Symbol]
-			// Small brownian drift
-			drift := (rand.Float64() - 0.5) * (curr * 0.001)
-			newPrice := curr + drift
-			prices[idx.Symbol] = newPrice
-
-			ch := newPrice - idx.BasePrice
-			chp := (ch / idx.BasePrice) * 100
-
-			tick := MarketTick{
-				Type:        "TICK",
-				Index:       idx.Symbol,
-				FyersSymbol: idx.FyersSymbol,
-				LTP:         roundFloat(newPrice, 2),
-				Open:        roundFloat(idx.BasePrice-25, 2),
-				High:        roundFloat(newPrice+45, 2),
-				Low:         roundFloat(newPrice-45, 2),
-				Change:      roundFloat(ch, 2),
-				ChangePct:   roundFloat(chp, 2),
-				Timestamp:   time.Now().Unix(),
-			}
-
-			payload, err := json.Marshal(tick)
-			if err == nil {
-				hub.broadcast <- payload
-
-				// Optionally store in Redis
-				if rdb != nil {
-					ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-					rdb.Set(ctx, fmt.Sprintf("anvil:fyers_quote:%s", idx.FyersSymbol), string(payload), 5*time.Second)
-					cancel()
+			// 1. Check if real-time Fyers quote is in Redis
+			foundLive := false
+			if rdb != nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+				val, err := rdb.Get(ctx, fmt.Sprintf("anvil:fyers_quote:%s", idx.FyersSymbol)).Result()
+				cancel()
+				if err == nil && val != "" {
+					var liveTick MarketTick
+					if jsonErr := json.Unmarshal([]byte(val), &liveTick); jsonErr == nil && liveTick.LTP > 0 {
+						liveTick.Type = "TICK"
+						liveTick.Index = idx.Symbol
+						liveTick.FyersSymbol = idx.FyersSymbol
+						if liveTick.Timestamp == 0 {
+							liveTick.Timestamp = time.Now().Unix()
+						}
+						payload, _ := json.Marshal(liveTick)
+						hub.broadcast <- payload
+						prices[idx.Symbol] = liveTick.LTP
+						foundLive = true
+					}
 				}
 			}
+
+			if foundLive {
+				continue
+			}
+
+			// Strict Data Integrity: NO synthetic/dummy drift fallback.
+			// Only broadcast genuine ticks ingested from Fyers.
 		}
 	}
 }

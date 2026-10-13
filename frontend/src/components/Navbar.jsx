@@ -7,6 +7,8 @@ export default function Navbar({
   user,
   account,
   ticks = {},
+  hasFeedToken = false,
+  onOpenDataFeed,
   onLogout,
   onOpenDeposit,
 }) {
@@ -97,34 +99,38 @@ export default function Navbar({
           >
             Home
           </button>
-          <button
-            id="nav-link-dashboard"
-            className="btn-secondary"
-            onClick={() => setCurrentView('dashboard')}
-            style={{
-              background: currentView === 'dashboard' ? 'var(--bg-surface-elevated)' : 'transparent',
-              borderColor: currentView === 'dashboard' ? 'var(--accent-primary)' : 'transparent',
-              fontSize: '0.88rem',
-              padding: '8px 14px',
-            }}
-          >
-            <Terminal size={16} />
-            Terminal
-          </button>
-          <button
-            id="nav-link-docs"
-            className="btn-secondary"
-            onClick={() => setCurrentView('docs')}
-            style={{
-              background: currentView === 'docs' ? 'var(--bg-surface-elevated)' : 'transparent',
-              borderColor: currentView === 'docs' ? 'var(--accent-primary)' : 'transparent',
-              fontSize: '0.88rem',
-              padding: '8px 14px',
-            }}
-          >
-            <BookOpen size={16} />
-            API Docs
-          </button>
+          {user && (
+            <>
+              <button
+                id="nav-link-dashboard"
+                className="btn-secondary"
+                onClick={() => setCurrentView('dashboard')}
+                style={{
+                  background: currentView === 'dashboard' ? 'var(--bg-surface-elevated)' : 'transparent',
+                  borderColor: currentView === 'dashboard' ? 'var(--accent-primary)' : 'transparent',
+                  fontSize: '0.88rem',
+                  padding: '8px 14px',
+                }}
+              >
+                <Terminal size={16} />
+                Terminal
+              </button>
+              <button
+                id="nav-link-docs"
+                className="btn-secondary"
+                onClick={() => setCurrentView('docs')}
+                style={{
+                  background: currentView === 'docs' ? 'var(--bg-surface-elevated)' : 'transparent',
+                  borderColor: currentView === 'docs' ? 'var(--accent-primary)' : 'transparent',
+                  fontSize: '0.88rem',
+                  padding: '8px 14px',
+                }}
+              >
+                <BookOpen size={16} />
+                API Docs
+              </button>
+            </>
+          )}
         </nav>
 
         {/* Right Action & Account Telemetry */}
@@ -133,11 +139,24 @@ export default function Navbar({
           <div
             id="fyers-feed-status-badge"
             className="badge-neutral"
-            style={{ background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.25)' }}
-            title="Real-time Fyers L1 Tick Ingestion Online"
+            onClick={onOpenDataFeed}
+            style={{
+              background: hasFeedToken ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+              borderColor: hasFeedToken ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.35)',
+              cursor: 'pointer',
+            }}
+            title="Click to view/configure Fyers API v3 Level-1 Data Feed"
           >
-            <div className="pulse-dot-green" />
-            <span style={{ color: 'var(--bull-green)', fontSize: '0.74rem' }}>FYERS FEED LIVE</span>
+            <div className={hasFeedToken ? 'pulse-dot-green' : 'pulse-dot-amber'} />
+            <span
+              style={{
+                color: hasFeedToken ? 'var(--bull-green)' : 'var(--warn-amber)',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+              }}
+            >
+              {hasFeedToken ? 'FYERS FEED LIVE' : 'DATA FEED OFFLINE'}
+            </span>
           </div>
 
           {/* Virtual Margin Balance Pill */}
@@ -199,14 +218,24 @@ export default function Navbar({
               </button>
             </div>
           ) : (
-            <button
-              id="nav-btn-login"
-              className="btn-primary"
-              onClick={() => setCurrentView('auth')}
-              style={{ padding: '8px 18px', fontSize: '0.88rem' }}
-            >
-              Sign In / OTP
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                id="nav-btn-admin-login"
+                className="btn-secondary"
+                onClick={() => setCurrentView('admin_login')}
+                style={{ padding: '8px 14px', fontSize: '0.84rem', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+              >
+                Admin Portal
+              </button>
+              <button
+                id="nav-btn-login"
+                className="btn-primary"
+                onClick={() => setCurrentView('auth')}
+                style={{ padding: '8px 18px', fontSize: '0.88rem' }}
+              >
+                Trader Sign In / OTP
+              </button>
+            </div>
           )}
         </div>
       </div>

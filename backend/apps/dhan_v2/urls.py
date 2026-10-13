@@ -11,10 +11,24 @@ from apps.dhan_v2.views import (
     MarginCalculatorView,
     OptionChainView,
     QuotesView,
-    PostbackReceiverView
+    PostbackReceiverView,
+    TokenExchangeView,
+    KillSwitchView,
+    PostbackConfigView,
+    TestPostbackView
 )
 
 urlpatterns = [
+    # Permanent Token Exchange for MARMOT Sandbox Terminal
+    path('token', TokenExchangeView.as_view(), name='dhan-token'),
+    path('token/', TokenExchangeView.as_view()),
+    path('auth/token', TokenExchangeView.as_view(), name='dhan-auth-token'),
+    path('auth/token/', TokenExchangeView.as_view()),
+
+    # Dhan v2 Kill Switch (Emergency Cancel Orders & Square Off Positions)
+    path('killswitch', KillSwitchView.as_view(), name='dhan-killswitch'),
+    path('killswitch/', KillSwitchView.as_view()),
+
     # Dhan v2 Core Endpoints
     path('orders', OrdersView.as_view(), name='dhan-orders'),
     path('orders/', OrdersView.as_view()),
@@ -37,4 +51,6 @@ urlpatterns = [
     path('quotes', QuotesView.as_view(), name='dhan-quotes'),
     path('quotes/', QuotesView.as_view()),
     path('postback/', PostbackReceiverView.as_view(), name='dhan-postback'),
+    path('postback/config/', PostbackConfigView.as_view(), name='dhan-postback-config'),
+    path('postback/test/', TestPostbackView.as_view(), name='dhan-postback-test'),
 ]
