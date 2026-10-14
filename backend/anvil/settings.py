@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.dhan_v2',
     'apps.fyers_feed',
+    'apps.market',
 ]
 
 MIDDLEWARE = [

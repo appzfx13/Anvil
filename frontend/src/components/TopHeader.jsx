@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import {
   Search,
   Bell,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sun,
   Maximize2,
   Minimize2,
   Zap,
@@ -23,6 +26,10 @@ export default function TopHeader({
   onOpenDataFeed,
   onOpenProfile,
   onNavigate,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
+  theme = 'dark',
+  onToggleTheme,
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
@@ -43,8 +50,27 @@ export default function TopHeader({
 
   return (
     <header id="anvil-top-header-bar" className="top-header">
-      {/* Left: Quick Actions ([K] shortcut button + Admin Actions) */}
+      {/* Left: Quick Actions (Sidebar Toggle + [K] shortcut button + Admin Actions) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          id="topheader-sidebar-toggle-btn"
+          onClick={onToggleSidebar}
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '6px',
+            padding: '6px 8px',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease',
+          }}
+          title={isSidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Minimize Sidebar (Ctrl+B)"}
+        >
+          {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
         <button
           style={{
             background: 'rgba(255, 255, 255, 0.04)',
@@ -255,21 +281,25 @@ export default function TopHeader({
 
       {/* Right: Theme Toggle, Fullscreen, Notification Bell, User Chip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        {/* Moon / Theme Toggle */}
+        {/* Moon / Sun Theme Toggle */}
         <button
+          id="theme-toggle-btn"
+          onClick={onToggleTheme}
           style={{
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            background: theme === 'light' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '8px',
             padding: '7px',
-            color: '#94a3b8',
+            color: theme === 'light' ? '#4f46e5' : '#fbbf24',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
           }}
-          title="Dark Mode (Active)"
+          title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
         >
-          <Moon size={15} />
+          {theme === 'light' ? <Moon size={15} color="#4f46e5" /> : <Sun size={15} color="#fbbf24" />}
         </button>
 
         {/* Fullscreen Button */}

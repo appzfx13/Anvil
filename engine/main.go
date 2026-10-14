@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"anvil-engine/workers"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 )
@@ -130,6 +131,11 @@ func main() {
 	hub := newHub()
 	go hub.run()
 
+	// Task Manager for Market Data Backups
+	broadcaster := func(msg []byte) { hub.broadcast <- msg }
+	taskMgr := workers.NewTaskManager(rdb, backendURL, broadcaster)
+	go taskMgr.Listen(context.Background())
+
 	// High-frequency tick generator & Redis broadcaster
 	go startTickStreamer(hub, rdb)
 
@@ -184,6 +190,7 @@ func main() {
 
 	mux.HandleFunc("/v2/marketfeed/ws", wsHandler)
 	mux.HandleFunc("/mock/v2/marketfeed/ws", wsHandler)
+	mux.HandleFunc("/ws/market/backup", wsHandler)
 
 	// Fast In-Memory Order Placement Interceptor
 	mux.HandleFunc("/v2/orders", func(w http.ResponseWriter, r *http.Request) {

@@ -13,6 +13,8 @@ import AdminTradesView from './components/AdminTradesView';
 import HomePage from './pages/HomePage';
 import Dashboard from './pages/Dashboard';
 import OptionChainPage from './pages/OptionChainPage';
+import MarketBackupDashboard from './features/market-backup/MarketBackupDashboard';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ChartsPage from './pages/ChartsPage';
 import MarketFeedPage from './pages/MarketFeedPage';
 import MarmotConnectPage from './pages/MarmotConnectPage';
@@ -70,6 +72,8 @@ function getRouteFromLocation() {
   return PATH_TO_VIEW[path] || 'dashboard';
 }
 
+const queryClient = new QueryClient();
+
 export default function App() {
   const [currentView, setCurrentView] = useState(() => getRouteFromLocation());
   const [user, setUser] = useState(null);
@@ -79,6 +83,40 @@ export default function App() {
   const [ticks, setTicks] = useState({});
   const [optionChainWsData, setOptionChainWsData] = useState({});
   const [hasFeedToken, setHasFeedToken] = useState(false);
+
+  // Theme (Dark / Light) & Collapsible Sidebar State
+  const [theme, setTheme] = useState(() => localStorage.getItem('anvil_theme') || 'dark');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('anvil_sidebar_collapsed') === 'true');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('anvil_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('anvil_sidebar_collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => !prev);
+  };
+
+  // Global Ctrl+B shortcut to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Modals state
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
@@ -413,7 +451,8 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#06080c', color: '#f8fafc' }}>
+    <QueryClientProvider client={queryClient}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-core)', color: 'var(--text-primary)', transition: 'background-color 0.25s ease, color 0.25s ease' }}>
       {currentView === 'admin_login' ? (
         /* Dedicated Super Admin Authentication Portal */
         <AdminLoginPage
@@ -433,7 +472,7 @@ export default function App() {
         />
       ) : user ? (
         /* Logged In: Luxury Obsidian App Shell with Left Sidebar & Top Header */
-        <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', background: '#06080c' }}>
+        <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-core)' }}>
           {/* Left Sidebar (Matching media_1791873450802.png) */}
           <Sidebar
             currentView={currentView}
@@ -447,10 +486,23 @@ export default function App() {
             }}
             onOpenOptionChainModal={() => setIsOptionChainModalOpen(true)}
             onOpenDataFeed={() => setIsDataFeedModalOpen(true)}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
           />
 
           {/* Main Viewport */}
-          <div className="main-viewport" style={{ flex: 1, marginLeft: 'var(--sidebar-width, 250px)', display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#06080c' }}>
+          <div
+            className={`main-viewport ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}
+            style={{
+              flex: 1,
+              marginLeft: isSidebarCollapsed ? '72px' : 'var(--sidebar-width, 250px)',
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: '100vh',
+              background: 'var(--bg-core)',
+              transition: 'margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease',
+            }}
+          >
             <TopHeader
               user={user}
               account={account}
@@ -458,6 +510,10 @@ export default function App() {
               onOpenDataFeed={() => setIsDataFeedModalOpen(true)}
               onOpenProfile={() => handleNavigate('profile')}
               onNavigate={handleNavigate}
+              isSidebarCollapsed={isSidebarCollapsed}
+              onToggleSidebar={toggleSidebar}
+              theme={theme}
+              onToggleTheme={toggleTheme}
             />
 
             {/* View Router */}
@@ -498,6 +554,14 @@ export default function App() {
                   optionChainWsData={optionChainWsData}
                   addToast={addToast}
                   onRefreshAccount={fetchSession}
+                />
+              )}
+
+              {/* 3.5 High-Performance Market Data Backup & Parquet Compaction */}
+              {currentView === 'backups' && (
+                <MarketBackupDashboard
+                  user={user}
+                  addToast={addToast}
                 />
               )}
 
@@ -678,5 +742,6 @@ export default function App() {
         </div>
       </Modal>
     </div>
+    </QueryClientProvider>
   );
 }

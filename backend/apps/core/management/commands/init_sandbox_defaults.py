@@ -1,8 +1,9 @@
-from decimal import Decimal
+﻿from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from apps.authentication.models import User
 from apps.accounts.models import VirtualAccount
+from apps.core.utils import fetch_ngrok_url
 
 class Command(BaseCommand):
     help = "Initializes default sandbox trader, Dhan API credentials, and ₹5,00,000 ledger balance safely."
@@ -40,6 +41,12 @@ class Command(BaseCommand):
         elif account.dhan_client_id != user.dhan_client_id:
             account.dhan_client_id = user.dhan_client_id
             account.save(update_fields=['dhan_client_id'])
+
+        ngrok_url = fetch_ngrok_url(retries=3, delay=1)
+        if ngrok_url:
+            self.stdout.write(self.style.SUCCESS(f"\nNGROK Tunnel URL: {ngrok_url}"))
+        else:
+            self.stdout.write(self.style.WARNING("\nNGROK Tunnel URL: Not available or ngrok tunnel offline."))
 
         self.stdout.write(self.style.SUCCESS(
             f"[ANVIL-INIT] Default sandbox initialized successfully:\n"

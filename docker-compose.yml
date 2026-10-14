@@ -54,7 +54,7 @@ services:
     container_name: anvil_backend
     restart: unless-stopped
     command: >
-      sh -c "python manage.py makemigrations authentication accounts dhan_v2 core --noinput &&
+      sh -c "python manage.py makemigrations authentication accounts dhan_v2 core market --noinput &&
              python manage.py migrate --noinput &&
              python manage.py init_sandbox_defaults &&
              python manage.py runserver 0.0.0.0:8000"
@@ -70,6 +70,7 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ./backend:/app
+      - backup_data:/app/backup
     depends_on:
       db:
         condition: service_healthy
@@ -95,6 +96,8 @@ services:
       - PORT=8088
       - REDIS_URL=redis://redis:6379/0
       - DJANGO_BACKEND_URL=http://backend:8000
+    volumes:
+      - backup_data:/app/backup
     depends_on:
       redis:
         condition: service_healthy
@@ -166,3 +169,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  backup_data:

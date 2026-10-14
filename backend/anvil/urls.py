@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/fyers/', include('apps.fyers_feed.urls')),
     path('api/core/', include('apps.fyers_feed.urls')),
     path('api/v2/', include('apps.dhan_v2.urls')),
+    path('api/v1/market/', include('apps.market.urls')),
 
     # 100% Dhan v2 Standard Wire API Route (for official Dhan Python SDK / Go SDK / bots)
     path('v2/', include('apps.dhan_v2.urls')),

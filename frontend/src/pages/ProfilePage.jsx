@@ -15,7 +15,6 @@ import {
   Zap,
   Globe,
   Radio,
-  FileCode,
   AlertTriangle,
   RotateCcw,
   Sparkles,
@@ -60,7 +59,6 @@ export default function ProfilePage({
   const [showToken, setShowToken] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [activeSnippetTab, setActiveSnippetTab] = useState('env');
 
   // Keep local form in sync when user prop updates
   useEffect(() => {
@@ -159,34 +157,6 @@ export default function ProfilePage({
       setIsRegenerating(false);
     }
   };
-
-  const envSnippet = `# Marmot Trading Bot Gateway Configuration (Anvil Sandbox)
-DHAN_CLIENT_ID=${clientId}
-DHAN_ACCESS_TOKEN=${accessToken}
-DHAN_CLIENT_SECRET=${clientSecret}
-DHAN_BASE_URL=${brokerBaseUrl}
-ANVIL_FEED_WS_URL=${wsFeedUrl}`;
-
-  const pythonSnippet = `from marmot import MarmotGateway
-
-gateway = MarmotGateway(
-    client_id="${clientId}",
-    access_token="${accessToken}",
-    client_secret="${clientSecret}",
-    base_url="${brokerBaseUrl}",
-    ws_feed_url="${wsFeedUrl}"
-)
-gateway.connect()`;
-
-  const jsonSnippet = JSON.stringify({
-    dhan_client_id: clientId,
-    access_token: accessToken,
-    client_secret: clientSecret,
-    base_url: brokerBaseUrl,
-    ws_feed_url: wsFeedUrl,
-    broker_name: "ANVIL High-Speed Matching Engine",
-    sandbox_mode: true
-  }, null, 2);
 
   return (
     <div id="profile-page-container" style={{ padding: '24px 32px', width: '100%', boxSizing: 'border-box' }}>
@@ -1022,122 +992,6 @@ gateway.connect()`;
             <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
               Sub-millisecond market feed socket for real-time Dhan / Fyers quotes & depth
             </div>
-          </div>
-        </div>
-
-        {/* 1-Click Marmot Configuration Block */}
-        <div
-          style={{
-            background: 'rgba(0, 0, 0, 0.45)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Snippet Header Tabs */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 16px',
-              background: 'rgba(255, 255, 255, 0.02)',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileCode size={15} color="#38bdf8" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#ffffff' }}>
-                Marmot Ready-To-Paste Config:
-              </span>
-
-              <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-                {['env', 'python', 'json'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveSnippetTab(tab)}
-                    style={{
-                      padding: '3px 9px',
-                      borderRadius: '5px',
-                      border: 'none',
-                      background: activeSnippetTab === tab ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                      color: activeSnippetTab === tab ? '#38bdf8' : '#64748b',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    .{tab}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                const textToCopy =
-                  activeSnippetTab === 'env'
-                    ? envSnippet
-                    : activeSnippetTab === 'python'
-                    ? pythonSnippet
-                    : jsonSnippet;
-                copyToClipboard(textToCopy, 'full_snippet');
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 12px',
-                borderRadius: '6px',
-                background: 'rgba(56, 189, 248, 0.15)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                color: '#38bdf8',
-                fontSize: '0.76rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {copiedKey === 'full_snippet' ? <Check size={13} /> : <Copy size={13} />}
-              {copiedKey === 'full_snippet' ? 'Copied Full Snippet!' : 'Copy Config Snippet'}
-            </button>
-          </div>
-
-          {/* Snippet Code View */}
-          <pre
-            style={{
-              margin: 0,
-              padding: '16px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.82rem',
-              color: '#cbd5e1',
-              lineHeight: 1.6,
-              overflowX: 'auto',
-              background: '#040711',
-            }}
-          >
-            {activeSnippetTab === 'env' && envSnippet}
-            {activeSnippetTab === 'python' && pythonSnippet}
-            {activeSnippetTab === 'json' && jsonSnippet}
-          </pre>
-        </div>
-
-        {/* Quick Connection Help Callout */}
-        <div
-          style={{
-            marginTop: '20px',
-            padding: '14px 18px',
-            borderRadius: '10px',
-            background: 'rgba(56, 189, 248, 0.05)',
-            border: '1px solid rgba(56, 189, 248, 0.15)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '12px',
-          }}
-        >
-          <Sparkles size={18} color="#38bdf8" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.5 }}>
-            <strong style={{ color: '#ffffff' }}>How Marmot executes trades:</strong> Simply copy the <code style={{ color: '#38bdf8', background: 'rgba(0,0,0,0.3)', padding: '1px 5px', borderRadius: '4px' }}>.env</code> snippet above into your Marmot project's root folder or container environment. Marmot will automatically pass the <code style={{ color: '#38bdf8' }}>client-id</code> and <code style={{ color: '#38bdf8' }}>access-token</code> headers with each order, instantly routing trades into Anvil's ultra-low latency matching engine.
           </div>
         </div>
       </div>
