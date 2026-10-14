@@ -477,7 +477,7 @@ export default function Dashboard({
         }}
       >
         {/* NIFTY 50 */}
-        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>NIFTY 50</span>
             <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>NSE SPOT</span>
@@ -493,7 +493,7 @@ export default function Dashboard({
         </div>
 
         {/* BANK NIFTY */}
-        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>BANK NIFTY</span>
             <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>NSE SPOT</span>
@@ -509,7 +509,7 @@ export default function Dashboard({
         </div>
 
         {/* FIN NIFTY */}
-        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>FIN NIFTY</span>
             <span className="pill-badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>NSE SPOT</span>
@@ -525,7 +525,7 @@ export default function Dashboard({
         </div>
 
         {/* SENSEX */}
-        <div className="glass-panel" style={{ padding: '12px 16px', background: 'rgba(11, 14, 21, 0.85)' }}>
+        <div className="glass-panel" style={{ padding: '12px 16px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#94a3b8' }}>BSE SENSEX</span>
             <span className="pill-badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>BSE SPOT</span>
@@ -551,7 +551,7 @@ export default function Dashboard({
         }}
       >
         {/* KPI 1: Realised Booked P&L */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #10b981' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)', borderLeft: '4px solid #10b981' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
               REALISED P&L (BOOKED)
@@ -582,7 +582,7 @@ export default function Dashboard({
         </div>
 
         {/* KPI 2: Unrealised MTM Float */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #06b6d4' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)', borderLeft: '4px solid #06b6d4' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
               UNREALISED P&L (MTM FLOAT)
@@ -610,7 +610,7 @@ export default function Dashboard({
         </div>
 
         {/* KPI 3: Available Margin & Capital Ledger */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #38bdf8' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)', borderLeft: '4px solid #38bdf8' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
               AVAILABLE CAPITAL LEDGER
@@ -638,7 +638,7 @@ export default function Dashboard({
         </div>
 
         {/* KPI 4: Estimated Brokerage & Taxes */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)', borderLeft: '4px solid #fbbf24' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)', borderLeft: '4px solid #fbbf24' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.04em' }}>
               ORDER BOOK & BROKERAGE
@@ -676,7 +676,7 @@ export default function Dashboard({
         }}
       >
         {/* Widget 1: Intraday Portfolio Equity Curve (Dynamic Graph) */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Activity size={16} color={equityPoints.color} />
@@ -781,7 +781,7 @@ export default function Dashboard({
         </div>
 
         {/* Widget 2: Margin & Capital Allocation (Donut Chart) */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <PieChart size={16} color="#06b6d4" />
@@ -866,7 +866,7 @@ export default function Dashboard({
         </div>
 
         {/* Widget 3: Position P&L Breakdown (Bar Graph) */}
-        <div className="glass-panel" style={{ padding: '18px 20px', background: 'rgba(11, 14, 21, 0.95)' }}>
+        <div className="glass-panel" style={{ padding: '18px 20px', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BarChart2 size={16} color="#fbbf24" />
@@ -931,13 +931,13 @@ export default function Dashboard({
         <div
           style={{
             padding: '12px 20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '12px',
-            background: 'rgba(255, 255, 255, 0.02)',
+            background: 'var(--bg-surface)',
           }}
         >
           {/* Tabs */}
@@ -1412,7 +1412,7 @@ export default function Dashboard({
             onChange={(e) => setDepositAmount(e.target.value)}
             style={{
               width: '100%',
-              background: '#06080c',
+              background: 'var(--bg-surface)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               color: '#ffffff',
               padding: '12px',
