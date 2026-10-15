@@ -37,6 +37,15 @@ def dispatch_backup_task(task_id, command='START'):
 
     try:
         r = get_redis_client()
+        # Automatically ensure the latest Fyers API broker token is synced to Redis for the Go worker
+        try:
+            from apps.core.models import SiteConfiguration
+            cfg = SiteConfiguration.get_solo()
+            if cfg.fyers_app_id and cfg.fyers_access_token:
+                r.set("anvil:fyers:access_token", f"{cfg.fyers_app_id}:{cfg.fyers_access_token}")
+        except Exception as sync_err:
+            logger.warning(f"[MARKET-BACKUP] Could not sync Fyers token to Redis: {sync_err}")
+
         r.publish(REDIS_TASKS_CHANNEL, json.dumps(payload))
         logger.info(f"[MARKET-BACKUP] Dispatched {command} for Task #{task_id} to Redis channel '{REDIS_TASKS_CHANNEL}'.")
         return True

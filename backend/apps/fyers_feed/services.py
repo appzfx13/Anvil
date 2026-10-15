@@ -56,6 +56,11 @@ class FyersFeedService:
             self.headers = {
                 "Authorization": f"{self.app_id}:{self.access_token}"
             }
+            if self.redis_client:
+                try:
+                    self.redis_client.set("anvil:fyers:access_token", f"{self.app_id}:{self.access_token}")
+                except Exception:
+                    pass
         else:
             self.headers = {}
 

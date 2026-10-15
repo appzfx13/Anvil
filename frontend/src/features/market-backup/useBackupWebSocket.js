@@ -82,8 +82,16 @@ export function useBackupWebSocket(taskId = null, onProgress = null) {
 
     return () => {
       clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        wsRef.current.close();
+      if (socket) {
+        socket.onclose = null;
+        socket.onerror = null;
+        if (socket.readyState === WebSocket.OPEN) {
+          try { socket.close(1000); } catch (e) {}
+        } else if (socket.readyState === WebSocket.CONNECTING) {
+          socket.onopen = () => {
+            try { socket.close(1000); } catch (e) {}
+          };
+        }
       }
     };
   }, [queryClient, taskId, onProgress]);

@@ -47,6 +47,10 @@ const PATH_TO_VIEW = {
   '/login': 'auth',
   '/admin': 'admin_login',
   '/admin/login': 'admin_login',
+  '/market-backups': 'backups',
+  '/market-backup': 'backups',
+  '/backups': 'backups',
+  '/backup': 'backups',
 };
 
 const VIEW_TO_PATH = {
@@ -58,6 +62,7 @@ const VIEW_TO_PATH = {
   profile: '/profile',
   trades: '/trades',
   traders: '/traders',
+  backups: '/market-backups',
   auth: '/auth',
   admin_login: '/admin',
   home: '/',
@@ -363,7 +368,17 @@ export default function App() {
     setupWs();
 
     return () => {
-      if (ws) ws.close();
+      if (ws) {
+        ws.onclose = null;
+        ws.onerror = null;
+        if (ws.readyState === WebSocket.OPEN) {
+          try { ws.close(1000); } catch (e) {}
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          ws.onopen = () => {
+            try { ws.close(1000); } catch (e) {}
+          };
+        }
+      }
       if (pollInterval) clearInterval(pollInterval);
     };
   }, []);
